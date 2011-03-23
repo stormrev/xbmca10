@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug (DirectX)|Win32">
@@ -621,6 +621,7 @@
     <ClCompile Include="..\..\xbmc\programs\ProgramDatabase.cpp" />
     <ClCompile Include="..\..\xbmc\programs\Shortcut.cpp" />
     <ClCompile Include="..\..\xbmc\pvr\addons\PVRClient.cpp" />
+    <ClCompile Include="..\..\xbmc\pvr\addons\PVRClients.cpp" />
     <ClCompile Include="..\..\xbmc\pvr\channels\PVRChannel.cpp" />
     <ClCompile Include="..\..\xbmc\pvr\channels\PVRChannelGroup.cpp" />
     <ClCompile Include="..\..\xbmc\pvr\channels\PVRChannelGroupInternal.cpp" />
@@ -678,7 +679,6 @@
     <ClCompile Include="..\..\xbmc\SortFileItem.cpp" />
     <ClCompile Include="..\..\xbmc\storage\AutorunMediaJob.cpp" />
     <ClCompile Include="..\..\xbmc\storage\cdioSupport.cpp" />
-    <ClCompile Include="..\..\xbmc\storage\DetectDVDType.cpp" />
     <ClCompile Include="..\..\xbmc\storage\IoSupport.cpp" />
     <ClCompile Include="..\..\xbmc\storage\MediaManager.cpp" />
     <ClCompile Include="..\..\xbmc\storage\windows\Win32StorageProvider.cpp" />
@@ -1502,6 +1502,7 @@
     <ClInclude Include="..\..\xbmc\programs\ProgramDatabase.h" />
     <ClInclude Include="..\..\xbmc\programs\Shortcut.h" />
     <ClInclude Include="..\..\xbmc\pvr\addons\PVRClient.h" />
+    <ClInclude Include="..\..\xbmc\pvr\addons\PVRClients.h" />
     <ClInclude Include="..\..\xbmc\pvr\channels\PVRChannel.h" />
     <ClInclude Include="..\..\xbmc\pvr\channels\PVRChannelGroup.h" />
     <ClInclude Include="..\..\xbmc\pvr\channels\PVRChannelGroupInternal.h" />
@@ -1559,7 +1560,6 @@
     <ClInclude Include="..\..\xbmc\SortFileItem.h" />
     <ClInclude Include="..\..\xbmc\storage\AutorunMediaJob.h" />
     <ClInclude Include="..\..\xbmc\storage\cdioSupport.h" />
-    <ClInclude Include="..\..\xbmc\storage\DetectDVDType.h" />
     <ClInclude Include="..\..\xbmc\storage\IoSupport.h" />
     <ClInclude Include="..\..\xbmc\storage\IStorageProvider.h" />
     <ClInclude Include="..\..\xbmc\storage\MediaManager.h" />

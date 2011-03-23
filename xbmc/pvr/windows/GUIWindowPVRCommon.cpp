@@ -286,13 +286,13 @@ bool CGUIWindowPVRCommon::OnContextButtonMenuHooks(CFileItem *item, CONTEXT_BUTT
     bReturn = true;
 
     if (item->IsEPG())
-      CPVRManager::Get()->ProcessMenuHooks(((CPVREpgInfoTag *) item->GetEPGInfoTag())->ChannelTag()->ClientID());
+      CPVRManager::GetClients()->ProcessMenuHooks(((CPVREpgInfoTag *) item->GetEPGInfoTag())->ChannelTag()->ClientID());
     else if (item->IsPVRChannel())
-      CPVRManager::Get()->ProcessMenuHooks(item->GetPVRChannelInfoTag()->ClientID());
+      CPVRManager::GetClients()->ProcessMenuHooks(item->GetPVRChannelInfoTag()->ClientID());
     else if (item->IsPVRRecording())
-      CPVRManager::Get()->ProcessMenuHooks(item->GetPVRRecordingInfoTag()->m_clientID);
+      CPVRManager::GetClients()->ProcessMenuHooks(item->GetPVRRecordingInfoTag()->m_clientID);
     else if (item->IsPVRTimer())
-      CPVRManager::Get()->ProcessMenuHooks(item->GetPVRTimerInfoTag()->m_iClientID);
+      CPVRManager::GetClients()->ProcessMenuHooks(item->GetPVRTimerInfoTag()->m_iClientID);
   }
 
   return bReturn;

@@ -130,10 +130,22 @@ int CPVRChannelGroups::GetIndexForGroupID(int iGroupId) const
   return iReturn;
 }
 
+void CPVRChannelGroups::RemoveFromAllGroups(CPVRChannel *channel)
+{
+  /* start at position 2 because channels are only deleted from non-system groups.
+   system groups are entries 0 and 1 */
+  for (unsigned int iGroupPtr = 2; iGroupPtr < size(); iGroupPtr++)
+  {
+    CPVRChannelGroup *group = (CPVRChannelGroup *) at(iGroupPtr);
+    group->RemoveFromGroup(channel);
+  }
+}
+
 bool CPVRChannelGroups::Update(void)
 {
   bool bReturn = true;
 
+  /* system groups are updated first, so new channels are added before anything is done with user defined groups */
   for (unsigned int iGroupPtr = 0; iGroupPtr < size(); iGroupPtr++)
     bReturn = at(iGroupPtr)->Update() && bReturn;
 
@@ -166,7 +178,7 @@ bool CPVRChannelGroups::Load(void)
   }
 
   CLog::Log(LOGDEBUG, "PVRChannelGroups - %s - %d %s channel groups loaded",
-      __FUNCTION__, size(), m_bRadio ? "radio" : "TV");
+      __FUNCTION__, (int) size(), m_bRadio ? "radio" : "TV");
 
   return true;
 }

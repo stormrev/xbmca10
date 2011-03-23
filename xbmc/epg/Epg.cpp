@@ -39,7 +39,7 @@ struct sortEPGbyDate
   }
 };
 
-CEpg::CEpg(int iEpgID, const CStdString &strName /* = CStdString() */, const CStdString &strScraperName /* = CStdString() */)
+CEpg::CEpg(int iEpgID, const CStdString &strName /* = "" */, const CStdString &strScraperName /* = "" */)
 {
   m_iEpgID          = iEpgID;
   m_strName         = strName;
@@ -202,7 +202,7 @@ const CEpgInfoTag *CEpg::InfoTagNext(void) const
 const CEpgInfoTag *CEpg::InfoTag(int uniqueID, const CDateTime &StartTime) const
 {
   CEpgInfoTag *returnTag = NULL;
-  CSingleLock locka(m_critSection);
+  CSingleLock lock(m_critSection);
 
   /* try to find the tag by UID */
   if (uniqueID > 0)
@@ -369,8 +369,6 @@ bool CEpg::Update(time_t start, time_t end, int iUpdateTime, bool bStoreInDb /* 
   m_lastScanTime.GetAsTime(iLastUpdate);
   bUpdate = (iNow > iLastUpdate + iUpdateTime);
 
-  lock.Leave();
-
   if (bUpdate)
   {
     m_bInhibitSorting = true;
@@ -381,7 +379,6 @@ bool CEpg::Update(time_t start, time_t end, int iUpdateTime, bool bStoreInDb /* 
     if (bGrabSuccess && size() > 0)
     {
       Sort();
-      lock.Enter();
       FixOverlappingEvents(false);
 
       if (bStoreInDb)
@@ -392,7 +389,6 @@ bool CEpg::Update(time_t start, time_t end, int iUpdateTime, bool bStoreInDb /* 
         database->CommitInsertQueries();
       }
 
-      lock.Leave();
       m_lastScanTime = CDateTime::GetCurrentDateTime();
     }
     else

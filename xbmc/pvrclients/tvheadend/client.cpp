@@ -39,14 +39,14 @@ CStdString g_szHostname       = DEFAULT_HOST;
 int g_iPortHTSP               = DEFAULT_HTSP_PORT;
 int g_iPortHTTP               = DEFAULT_HTTP_PORT;
 int g_iConnectTimout          = DEFAULT_TIMEOUT;
-bool g_bSkipIFrame            = DEFAULT_SKIP_I_FRAME;
+int g_iSkipIFrame             = DEFAULT_SKIP_I_FRAME;
 int g_iEpgOffsetCorrection    = DEFAULT_EPG_OFFSET_CORRECTION;
 CStdString g_szUsername       = "";
 CStdString g_szPassword       = "";
 CStdString g_szUserPath       = "";
 CStdString g_szClientPath     = "";
-cHelper_libXBMC_addon *XBMC   = NULL;
-cHelper_libXBMC_pvr   *PVR    = NULL;
+CHelper_libXBMC_addon *XBMC   = NULL;
+CHelper_libXBMC_pvr   *PVR    = NULL;
 cHTSPDemux *HTSPDemuxer       = NULL;
 cHTSPData  *HTSPData          = NULL;
 
@@ -63,11 +63,11 @@ ADDON_STATUS Create(void* hdl, void* props)
 
   PVR_PROPS* pvrprops = (PVR_PROPS*)props;
 
-  XBMC = new cHelper_libXBMC_addon;
+  XBMC = new CHelper_libXBMC_addon;
   if (!XBMC->RegisterMe(hdl))
     return STATUS_UNKNOWN;
 
-  PVR = new cHelper_libXBMC_pvr;
+  PVR = new CHelper_libXBMC_pvr;
   if (!PVR->RegisterMe(hdl))
     return STATUS_UNKNOWN;
 
@@ -129,12 +129,12 @@ ADDON_STATUS Create(void* hdl, void* props)
     g_iPortHTTP = DEFAULT_HTTP_PORT;
   }
 
-  /* Read setting "skip_I_frame" from settings.xml */
-  if (!XBMC->GetSetting("skip_I_frame", &g_bSkipIFrame))
+  /* Read setting "skip_I_frame_count" from settings.xml */
+  if (!XBMC->GetSetting("skip_I_frame_count", &g_iSkipIFrame))
   {
     /* If setting is unknown fallback to defaults */
-    XBMC->Log(LOG_ERROR, "%s - Couldn't get 'skip_I_frame' setting, falling back to 'true' as default", __FUNCTION__);
-    g_bSkipIFrame = DEFAULT_SKIP_I_FRAME;
+    XBMC->Log(LOG_ERROR, "%s - Couldn't get 'skip_I_frame_count' setting, falling back to '%d' as default", __FUNCTION__, DEFAULT_SKIP_I_FRAME);
+    g_iSkipIFrame = DEFAULT_SKIP_I_FRAME;
   }
 
   /* Read setting "epg_offset_correction" from settings.xml */
@@ -231,12 +231,12 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
       return STATUS_NEED_RESTART;
     }
   }
-  else if (str == "skip_I_frame")
+  else if (str == "skip_I_frame_count")
   {
-    XBMC->Log(LOG_INFO, "%s - Changed Setting 'skip_I_frame' from %u to %u", __FUNCTION__, g_bSkipIFrame, *(bool*) settingValue);
-    if (g_bSkipIFrame != *(bool*) settingValue)
+    XBMC->Log(LOG_INFO, "%s - Changed Setting 'skip_I_frame_count' from %u to %u", __FUNCTION__, g_iSkipIFrame, *(int*) settingValue);
+    if (g_iSkipIFrame != *(int*) settingValue)
     {
-      g_bSkipIFrame = *(bool*) settingValue;
+      g_iSkipIFrame = *(int*) settingValue;
       return STATUS_OK;
     }
   }

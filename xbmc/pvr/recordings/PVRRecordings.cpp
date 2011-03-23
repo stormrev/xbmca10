@@ -34,20 +34,8 @@
 
 void CPVRRecordings::UpdateFromClients(void)
 {
-  CLIENTMAP *clients = CPVRManager::Get()->Clients();
-
   Clear();
-
-  CLIENTMAPITR itr = clients->begin();
-  while (itr != clients->end())
-  {
-    /* Load only if the client have Recordings */
-    if ((*itr).second->GetNumRecordings() > 0)
-    {
-      (*itr).second->GetAllRecordings(this);
-    }
-    itr++;
-  }
+  CPVRManager::GetClients()->GetRecordings(this);
 }
 
 CStdString CPVRRecordings::TrimSlashes(const CStdString &strOrig) const
@@ -210,7 +198,7 @@ bool CPVRRecordings::DeleteRecording(const CFileItem &item)
     return bReturn;
   }
 
-  const CPVRRecording* tag = item.GetPVRRecordingInfoTag();
+  CPVRRecording *tag = (CPVRRecording *)item.GetPVRRecordingInfoTag();
   CSingleLock lock(m_critSection);
   if (tag->Delete())
   {

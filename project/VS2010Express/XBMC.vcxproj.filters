@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="win32">
@@ -1874,9 +1874,6 @@
     <ClCompile Include="..\..\xbmc\storage\cdioSupport.cpp">
       <Filter>storage</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\storage\DetectDVDType.cpp">
-      <Filter>storage</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\storage\IoSupport.cpp">
       <Filter>storage</Filter>
     </ClCompile>
@@ -2632,6 +2629,9 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRTimers.cpp">
       <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\addons\PVRClients.cpp">
+      <Filter>pvr\addons</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -4494,9 +4494,6 @@
     <ClInclude Include="..\..\xbmc\storage\cdioSupport.h">
       <Filter>storage</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\storage\DetectDVDType.h">
-      <Filter>storage</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\storage\IoSupport.h">
       <Filter>storage</Filter>
     </ClInclude>
@@ -5238,6 +5235,9 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\GlobalsHandling.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\addons\PVRClients.h">
+      <Filter>pvr\addons</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

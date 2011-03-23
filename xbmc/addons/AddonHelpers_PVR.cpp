@@ -44,6 +44,7 @@ CAddonHelpers_PVR::CAddonHelpers_PVR(CAddon* addon)
   m_callbacks->TransferRecordingEntry = PVRTransferRecordingEntry;
   m_callbacks->AddMenuHook            = PVRAddMenuHook;
   m_callbacks->Recording              = PVRRecording;
+  m_callbacks->TriggerChannelUpdate   = PVRTriggerChannelUpdate;
   m_callbacks->TriggerTimerUpdate     = PVRTriggerTimerUpdate;
   m_callbacks->TriggerRecordingUpdate = PVRTriggerRecordingUpdate;
   m_callbacks->FreeDemuxPacket        = PVRFreeDemuxPacket;
@@ -85,21 +86,9 @@ void CAddonHelpers_PVR::PVRTransferChannelEntry(void *addonData, const PVRHANDLE
 
   CPVRClient* client = (CPVRClient*) handle->CALLER_ADDRESS;
   CPVRChannelGroupInternal *xbmcChannels = (CPVRChannelGroupInternal*) handle->DATA_ADDRESS;
-  CPVRChannel channelTag(channel->radio);
 
-  channelTag.SetClientChannelNumber(channel->number);
-  channelTag.SetClientID(client->GetClientID());
-  channelTag.SetUniqueID(channel->uid);
-  channelTag.SetChannelName(channel->name);
-  channelTag.SetClientChannelName(channel->callsign);
-  channelTag.SetIconPath(channel->iconpath);
-  channelTag.SetEncryptionSystem(channel->encryption);
-  channelTag.SetHidden(channel->hide);
-  channelTag.SetRecording(channel->recording);
-  channelTag.SetInputFormat(channel->input_format);
-  channelTag.SetStreamURL(channel->stream_url);
-
-  xbmcChannels->UpdateChannel(channelTag);
+  CPVRChannel channelTag(*channel, client->GetClientID());
+  xbmcChannels->UpdateFromClient(channelTag);
 }
 
 void CAddonHelpers_PVR::PVRTransferRecordingEntry(void *addonData, const PVRHANDLE handle, const PVR_RECORDINGINFO *recording)
@@ -168,8 +157,6 @@ void CAddonHelpers_PVR::PVRTransferTimerEntry(void *addonData, const PVRHANDLE h
   tag.m_bIsRepeating      = timer->repeat == 1;
   tag.m_iWeekdays         = timer->repeatflags;
   tag.m_strFileNameAndPath.Format("pvr://client%i/timers/%i", tag.m_iClientID, tag.m_iClientIndex);
-
-  // TODO find matching EPG entry
   tag.UpdateSummary();
 
   xbmcTimers->Update(tag);
@@ -223,6 +210,18 @@ void CAddonHelpers_PVR::PVRRecording(void *addonData, const char *Name, const ch
   CLog::Log(LOGDEBUG, "%s: %s-%s - Recording %s : %s %s", __FUNCTION__, TranslateType(addonHelper->m_addon->Type()).c_str(), addonHelper->m_addon->Name().c_str(), On ? "started" : "finished", Name, FileName);
 }
 
+void CAddonHelpers_PVR::PVRTriggerChannelUpdate(void *addonData)
+{
+  CAddonHelpers* addon = (CAddonHelpers*) addonData;
+  if (addon == NULL)
+  {
+    CLog::Log(LOGERROR, "PVR addon - %s - called from an invalid client", __FUNCTION__);
+    return;
+  }
+
+  CPVRManager::Get()->TriggerChannelsUpdate();
+}
+
 void CAddonHelpers_PVR::PVRTriggerTimerUpdate(void *addonData)
 {
   CAddonHelpers* addon = (CAddonHelpers*) addonData;
@@ -232,10 +231,7 @@ void CAddonHelpers_PVR::PVRTriggerTimerUpdate(void *addonData)
     return;
   }
 
-  CAddonHelpers_PVR* addonHelper = addon->GetHelperPVR();
-
   CPVRManager::Get()->TriggerTimersUpdate();
-  CLog::Log(LOGDEBUG, "%s: %s-%s - Triggered Timer Update", __FUNCTION__, TranslateType(addonHelper->m_addon->Type()).c_str(), addonHelper->m_addon->Name().c_str());
 }
 
 void CAddonHelpers_PVR::PVRTriggerRecordingUpdate(void *addonData)
@@ -247,10 +243,7 @@ void CAddonHelpers_PVR::PVRTriggerRecordingUpdate(void *addonData)
     return;
   }
 
-  CAddonHelpers_PVR* addonHelper = addon->GetHelperPVR();
-
   CPVRManager::Get()->TriggerRecordingsUpdate();
-  CLog::Log(LOGDEBUG, "%s: %s-%s - Triggered Recording Update", __FUNCTION__, TranslateType(addonHelper->m_addon->Type()).c_str(), addonHelper->m_addon->Name().c_str());
 }
 
 void CAddonHelpers_PVR::PVRFreeDemuxPacket(void *addonData, DemuxPacket* pPacket)

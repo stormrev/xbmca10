@@ -25,6 +25,8 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/recordings/PVRRecording.h"
+#include "pvr/windows/GUIWindowPVR.h"
+#include "guilib/GUIWindowManager.h"
 
 using namespace std;
 
@@ -74,10 +76,10 @@ int CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false *
   for (unsigned int iChannelPtr = 0; iChannelPtr < group->Size(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) group->GetByIndex(iChannelPtr);
-    if (!channel || !channel->GetEPG())
+    if (!channel)
       continue;
 
-    channel->GetEPG()->Get(results);
+    channel->GetEPG(results);
   }
 
   return results->Size() - iInitialSize;
@@ -221,4 +223,18 @@ int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
   }
 
   return results->Size() - iInitialSize;
+}
+
+bool CPVREpgContainer::UpdateEPG(bool bShowProgress /* = false */)
+{
+  bool bReturn = CEpgContainer::UpdateEPG(bShowProgress);
+
+  if (bReturn)
+  {
+    CGUIWindowPVR *pWindow = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
+    if (pWindow)
+      pWindow->InitializeEpgCache();
+  }
+
+  return bReturn;
 }
