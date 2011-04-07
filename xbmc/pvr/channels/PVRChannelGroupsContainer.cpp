@@ -20,7 +20,9 @@
  */
 
 #include "PVRChannelGroupsContainer.h"
+#include "URL.h"
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/LocalizeStrings.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 
@@ -37,10 +39,10 @@ CPVRChannelGroupsContainer::~CPVRChannelGroupsContainer(void)
   delete m_groupsTV;
 }
 
-bool CPVRChannelGroupsContainer::Update(void)
+bool CPVRChannelGroupsContainer::Update(bool bChannelsOnly /* = false */)
 {
-  return m_groupsRadio->Update() &&
-         m_groupsTV->Update();
+  return m_groupsRadio->Update(bChannelsOnly) &&
+         m_groupsTV->Update(bChannelsOnly);
 }
 
 bool CPVRChannelGroupsContainer::Load(void)
@@ -211,11 +213,13 @@ int CPVRChannelGroupsContainer::GetNumChannelsFromAll()
 const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueID(int iClientChannelNumber, int iClientID)
 {
   const CPVRChannel *channel = NULL;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByClient(iClientChannelNumber, iClientID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
 
-  if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByClient(iClientChannelNumber, iClientID);
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByClient(iClientChannelNumber, iClientID);
 
   return channel;
 }
@@ -223,11 +227,25 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueID(int iClientChannelN
 const CPVRChannel *CPVRChannelGroupsContainer::GetByChannelIDFromAll(int iChannelID)
 {
   const CPVRChannel *channel = NULL;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByChannelID(iChannelID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
+
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByChannelID(iChannelID);
+
+  return channel;
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetByClientFromAll(unsigned int iClientId, unsigned int iChannelUid)
+{
+  const CPVRChannel *channel = NULL;
+
+  channel = GetGroupAllTV()->GetByClient(iChannelUid, iClientId);
 
   if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByChannelID(iChannelID);
+    channel = GetGroupAllRadio()->GetByClient(iChannelUid, iClientId);
 
   return channel;
 }
@@ -235,11 +253,13 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetByChannelIDFromAll(int iChanne
 const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueIDFromAll(int iUniqueID)
 {
   const CPVRChannel *channel;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByUniqueID(iUniqueID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
 
-  if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByUniqueID(iUniqueID);
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByUniqueID(iUniqueID);
 
   return NULL;
 }
@@ -249,8 +269,13 @@ void CPVRChannelGroupsContainer::SearchMissingChannelIcons(void)
   CLog::Log(LOGINFO, "PVRChannelGroupsContainer - %s - starting channel icon search", __FUNCTION__);
 
   // TODO: Add Process dialog here
-  ((CPVRChannelGroup *) GetGroupAllTV())->SearchAndSetChannelIcons(true);
-  ((CPVRChannelGroup *) GetGroupAllRadio())->SearchAndSetChannelIcons(true);
+  CPVRChannelGroup* channelgrouptv  = (CPVRChannelGroup *) GetGroupAllTV();
+  CPVRChannelGroup* channelgroupradio  =(CPVRChannelGroup *) GetGroupAllRadio();
+
+  if (channelgrouptv != NULL)
+    channelgrouptv->SearchAndSetChannelIcons(true);
+  if (channelgroupradio != NULL)
+    channelgroupradio->SearchAndSetChannelIcons(true);
 
   CGUIDialogOK::ShowAndGetInput(19103,0,20177,0);
 }

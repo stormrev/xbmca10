@@ -24,6 +24,7 @@
 #include "GUIControlFactory.h"
 #include "GUIListItem.h"
 #include "GUIFontManager.h"
+#include "lib/tinyXML/tinyxml.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "GUIInfoManager.h"
@@ -709,6 +710,15 @@ void CGUIEPGGridContainer::UpdateItems()
 {
   CDateTimeSpan blockDuration, gridDuration;
 
+  /* check for invalid start and end time */
+  if (m_gridStart >= m_gridEnd)
+  {
+    CLog::Log(LOGERROR, "CGUIEPGGridContainer - %s - invalid start and end time set", __FUNCTION__);
+    CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), GetParentID()); // message the window
+    SendWindowMessage(msg);
+    return;
+  }
+
   gridDuration = m_gridEnd - m_gridStart;
 
   m_blocks = (gridDuration.GetDays()*24*60 + gridDuration.GetHours()*60 + gridDuration.GetMinutes()) / MINSPERBLOCK;
@@ -749,15 +759,15 @@ void CGUIEPGGridContainer::UpdateItems()
         if (tag == NULL)
           progIdx++;
 
-        if (m_gridEnd <= tag->Start())
+        if (m_gridEnd <= tag->StartAsLocalTime())
         {
           break;
         }
-        else if (gridCursor >= tag->End())
+        else if (gridCursor >= tag->EndAsLocalTime())
         {
           progIdx++;
         }
-        else if (gridCursor < tag->End())
+        else if (gridCursor < tag->EndAsLocalTime())
         {
           m_gridIndex[row][block].item = item;
           break;

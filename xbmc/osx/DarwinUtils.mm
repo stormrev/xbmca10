@@ -28,6 +28,7 @@
 #if defined(__APPLE__)
 #if defined(__arm__)
   #import <Foundation/Foundation.h>
+  #import <UIKit/UIKit.h>
   #import <mach/mach_host.h>
   #import <sys/sysctl.h>
 #else
@@ -35,6 +36,18 @@
 #endif
 
 #import "DarwinUtils.h"
+
+float GetIOSVersion(void)
+{
+  float version;
+#if defined(__arm__)
+  version = [[[UIDevice currentDevice] systemVersion] floatValue];
+#else
+  version = 0.0f;
+#endif
+
+  return(version);
+}
 
 int  GetDarwinFrameworkPath(bool forPython, char* path, uint32_t *pathsize)
 {
@@ -181,6 +194,35 @@ bool DarwinHasVideoToolboxDecoder(void)
   }
 
   return bDecoderAvailable;
+}
+
+
+CGImageRef CGImageCreateRotatedByAngle(CGImageRef imgRef, float angle)
+{
+  // image rotation function taken from
+  // https://gist.github.com/585377
+  float angleInRadians = angle * (M_PI / 180);
+  float width = CGImageGetWidth(imgRef);
+  float height = CGImageGetHeight(imgRef);
+  
+  CGRect imgRect = CGRectMake(0, 0, width, height);
+  CGAffineTransform transform = CGAffineTransformMakeRotation(angleInRadians);
+  CGRect rotatedRect = CGRectApplyAffineTransform(imgRect, transform);
+  
+  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+  CGContextRef bmContext = CGBitmapContextCreate(NULL,rotatedRect.size.width, rotatedRect.size.height,
+    8, 0, colorSpace, kCGImageAlphaPremultipliedFirst);
+  CGContextSetAllowsAntialiasing(bmContext, 1);
+  CGContextSetInterpolationQuality(bmContext, kCGInterpolationHigh);
+  CGColorSpaceRelease(colorSpace);
+  CGContextTranslateCTM(bmContext, +(rotatedRect.size.width/2), +(rotatedRect.size.height/2));
+  CGContextRotateCTM(bmContext, angleInRadians);
+  CGContextDrawImage(bmContext, CGRectMake(-width/2, -height/2, width, height), imgRef);
+  
+  CGImageRef rotatedImage = CGBitmapContextCreateImage(bmContext);
+  CFRelease(bmContext);
+  
+  return rotatedImage;
 }
 
 #endif

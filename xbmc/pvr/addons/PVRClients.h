@@ -20,22 +20,28 @@
  *
  */
 
-#include "PVRClient.h"
 #include "threads/CriticalSection.h"
+#include "threads/Thread.h"
+#include "PVRClient.h"
 
 #include <vector>
 #include <deque>
 
+class CPVRGUIInfo;
+
 typedef std::map< long, boost::shared_ptr<CPVRClient> >           CLIENTMAP;
 typedef std::map< long, boost::shared_ptr<CPVRClient> >::iterator CLIENTMAPITR;
-typedef std::map< long, PVR_SERVERPROPS >                         CLIENTPROPS;
-typedef std::map< long, PVR_STREAMPROPS >                         STREAMPROPS;
+typedef std::map< long, PVR_ADDON_CAPABILITIES >                  CLIENTPROPS;
+typedef std::map< long, PVR_STREAM_PROPERTIES >                   STREAMPROPS;
 
 #define XBMC_VIRTUAL_CLIENTID -1
 
 class CPVRClients : IPVRClientCallback,
-                    public ADDON::IAddonMgrCallback
+                    public ADDON::IAddonMgrCallback,
+                    private CThread
 {
+  friend class CPVRGUIInfo;
+
 public:
   CPVRClients(void);
   virtual ~CPVRClients(void);
@@ -144,6 +150,7 @@ public:
   bool IsPlaying(void) const;
   bool AllClientsLoaded(void) const;
   bool IsReadingLiveStream(void) const;
+  const CStdString GetPlayingClientName(void) const { return m_strPlayingClientName; }
   bool SwitchChannel(const CPVRChannel &channel);
 
   int GetTimers(CPVRTimers *timers);
@@ -153,10 +160,12 @@ public:
   bool RenameTimer(const CPVRTimerInfoTag &timer, const CStdString &strNewName, PVR_ERROR *error);
 
   int GetRecordings(CPVRRecordings *recordings);
-  bool RenameRecording(const CPVRRecording &recording, const CStdString &strNewName, PVR_ERROR *error);
+  bool RenameRecording(const CPVRRecording &recording, PVR_ERROR *error);
   bool DeleteRecording(const CPVRRecording &recording, PVR_ERROR *error);
 
   bool GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg, time_t start, time_t end, PVR_ERROR *error);
+  int GetChannelGroups(CPVRChannelGroups *groups, PVR_ERROR *error);
+  int GetChannelGroupMembers(CPVRChannelGroup *group, PVR_ERROR *error);
   int GetChannels(CPVRChannelGroupInternal *group, PVR_ERROR *error);
 
   int GetClients(std::map<long, CStdString> *clients);
@@ -179,6 +188,11 @@ public:
    * @return True if it can, false otherwise.
    */
   bool CanRecordInstantly(void);
+
+  /*!
+   * @return The amount of active clients.
+   */
+  int ActiveClientAmount(void);
 
   /*!
    * @brief Check whether there are any active clients.
@@ -244,7 +258,7 @@ public:
    * @brief Get the properties of the current playing client.
    * @return A pointer to the properties or NULL if no stream is playing.
    */
-  PVR_SERVERPROPS *GetCurrentClientProperties(void);
+  PVR_ADDON_CAPABILITIES*GetCurrentClientProperties(void);
 
   /*!
    * @brief Get the ID of the client that is currently being used to play.
@@ -257,13 +271,13 @@ public:
    * @param clientID The ID of the client.
    * @return A pointer to the properties or NULL if no stream is playing.
    */
-  PVR_SERVERPROPS *GetClientProperties(int iClientId) { return &m_clientsProps[iClientId]; }
+  PVR_ADDON_CAPABILITIES *GetClientProperties(int iClientId) { return &m_clientsProps[iClientId]; }
 
   /*!
    * @brief Get the properties of the current playing stream content.
    * @return A pointer to the properties or NULL if no stream is playing.
    */
-  PVR_STREAMPROPS *GetCurrentStreamProperties(void);
+  PVR_STREAM_PROPERTIES *GetCurrentStreamProperties(void);
 
   /*!
    * @brief Get the input format name of the current playing stream content.
@@ -286,43 +300,24 @@ public:
 
   void Unload(void);
 
-  const char *CharInfoVideoBR(void) const;
-  const char *CharInfoAudioBR(void) const;
-  const char *CharInfoDolbyBR(void) const;
-  const char *CharInfoSignal(void) const;
-  const char *CharInfoSNR(void) const;
-  const char *CharInfoBER(void) const;
-  const char *CharInfoUNC(void) const;
-  const char *CharInfoFrontendName(void) const;
-  const char *CharInfoFrontendStatus(void) const;
-  const char *CharInfoBackendName(void) const;
-  const char *CharInfoBackendNumber(void);
-  const char *CharInfoTotalDiskSpace(void);
-  const char *CharInfoEncryption(void) const;
-  const char *CharInfoBackendVersion(void) const;
-  const char *CharInfoBackendHost(void) const;
-  const char *CharInfoBackendDiskspace(void) const;
-  const char *CharInfoBackendChannels(void) const;
-  const char *CharInfoBackendTimers(void) const;
-  const char *CharInfoBackendRecordings(void) const;
-  const char *CharInfoPlayingClientName(void) const;
-
   bool GetPlayingChannel(CPVRChannel *channel) const;
   bool GetPlayingRecording(CPVRRecording *recording) const;
   int GetPlayingClientID(void) const;
   bool IsValidClient(int iClientId);
   bool ClientLoaded(const CStdString &strClientId);
 
-  /*!
-   * @brief Update the signal quality info.
-   */
-  void UpdateSignalQuality(void);
+  void GetQualityData(PVR_SIGNAL_STATUS *status) const;
+
+  void Start(void);
+  void Stop(void);
 
 private:
   int AddClientToDb(const CStdString &strClientId, const CStdString &strName);
   int ReadLiveStream(void* lpBuf, int64_t uiBufSize);
   int ReadRecordedStream(void* lpBuf, int64_t uiBufSize);
   bool GetMenuHooks(int iClientID, PVR_MENUHOOKS *hooks);
+
+  void UpdateCharInfoSignalStatus(void);
 
   /*!
    * @brief Load and initialise all clients.
@@ -335,30 +330,23 @@ private:
    */
   void ResetQualityData(void);
 
+  /*!
+   * @brief Updates the backend information
+   */
+  void Process(void);
+
   int GetActiveClients(CLIENTMAP *clients);
 
   const CPVRChannel *   m_currentChannel;
   const CPVRRecording * m_currentRecording;
+  CStdString            m_strPlayingClientName;
   bool                  m_bAllClientsLoaded; /*!< true if all clients are loaded, false otherwise */
   CCriticalSection      m_critSection;
   CLIENTMAP             m_clientMap;
   CLIENTPROPS           m_clientsProps;      /*!< store the properties of each client locally */
-  PVR_SIGNALQUALITY     m_qualityInfo;       /*!< stream quality information */
+  PVR_SIGNAL_STATUS     m_qualityInfo;       /*!< stream quality information */
   bool                  m_bChannelScanRunning;      /*!< true if a channel scan is currently running, false otherwise */
   STREAMPROPS           m_streamProps;              /*!< the current stream's properties */
-
-  CStdString            m_strPlayingClientName;
-  CStdString            m_strBackendName;
-  CStdString            m_strBackendVersion;
-  CStdString            m_strBackendHost;
-  CStdString            m_strBackendDiskspace;
-  CStdString            m_strBackendTimers;
-  CStdString            m_strBackendRecordings;
-  CStdString            m_strBackendChannels;
-  CStdString            m_strTotalDiskspace;
-
-  unsigned int          m_iInfoToggleStart;
-  unsigned int          m_iInfoToggleCurrent;
 
   DWORD                 m_scanStart;                /* Scan start time to check for non present streams */
 };

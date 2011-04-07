@@ -23,7 +23,8 @@
 #include "Util.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/addons/PVRClients.h"
 #include "utils/log.h"
 
 using namespace XFILE;
@@ -107,7 +108,7 @@ bool CPVRFile::Open(const CURL& url)
 
 void CPVRFile::Close()
 {
-  CPVRManager::GetClients()->CloseStream();
+  CPVRManager::Get()->CloseStream();
 }
 
 unsigned int CPVRFile::Read(void* buffer, int64_t size)
@@ -253,12 +254,9 @@ CStdString CPVRFile::TranslatePVRFilename(const CStdString& pathFile)
         {
           // pvr://stream
           // This function was added to retrieve the stream URL for this item
-          // Is is used for the MediaPortal PVR addon
+          // Is is used for the MediaPortal (ffmpeg) PVR addon
           // see PVRManager.cpp
-          if (CPVRManager::Get()->OpenLiveStream(*tag))
-            return CPVRManager::GetClients()->GetStreamURL(*tag);
-          else
-            return "";
+          return CPVRManager::GetClients()->GetStreamURL(*tag);
         }
         else
         {

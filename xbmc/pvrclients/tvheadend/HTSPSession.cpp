@@ -414,9 +414,6 @@ void cHTSPSession::ParseChannelUpdate(htsmsg_t* msg, SChannels &channels)
   if((icon = htsmsg_get_str(msg, "channelIcon")))
     channel.icon = icon;
 
-  if(htsmsg_get_u32(msg, "channelCaid", &caid) == 0)
-    channel.caid = caid;
-
   if(htsmsg_get_u32(msg, "channelNumber", &num) == 0)
   {
     if(num == 0)
@@ -454,11 +451,13 @@ void cHTSPSession::ParseChannelUpdate(htsmsg_t* msg, SChannels &channels)
 
       htsmsg_t *service = &f->hmf_msg;
       const char *service_type = htsmsg_get_str(service, "type");
-
       if(service_type != NULL)
       {
         channel.radio = !strcmp(service_type, "Radio");
       }
+
+      if(!htsmsg_get_u32(service, "caid", &caid))
+        channel.caid = (int) caid;
     }
   }
   
@@ -521,6 +520,7 @@ void cHTSPSession::ParseTagUpdate(htsmsg_t* msg, STags &tags)
   XBMC->Log(LOG_DEBUG, "%s - id:%u, name:'%s', icon:'%s'"
       , __FUNCTION__, id, name ? name : "(null)", icon ? icon : "(null)");
 
+  PVR->TriggerChannelGroupsUpdate();
 }
 
 void cHTSPSession::ParseTagRemove(htsmsg_t* msg, STags &tags)
@@ -535,6 +535,8 @@ void cHTSPSession::ParseTagRemove(htsmsg_t* msg, STags &tags)
   XBMC->Log(LOG_DEBUG, "%s - id:%u", __FUNCTION__, id);
 
   tags.erase(id);
+
+  PVR->TriggerChannelGroupsUpdate();
 }
 
 bool cHTSPSession::ParseSignalStatus (htsmsg_t* msg, SQuality &quality)

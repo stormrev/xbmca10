@@ -234,6 +234,7 @@
 #include "dialogs/GUIDialogSlider.h"
 #include "guilib/GUIControlFactory.h"
 #include "dialogs/GUIDialogCache.h"
+#include "dialogs/GUIDialogPlayEject.h"
 #include "addons/AddonInstaller.h"
 
 #ifdef HAS_PERFORMANCE_SAMPLE
@@ -1112,6 +1113,8 @@ bool CApplication::Initialize()
 
   g_windowManager.Add(new CGUIDialogContentSettings);        // window id = 132
 
+  g_windowManager.Add(new CGUIDialogPlayEject);
+
   g_windowManager.Add(new CGUIWindowMusicPlayList);          // window id = 500
   g_windowManager.Add(new CGUIWindowMusicSongs);             // window id = 501
   g_windowManager.Add(new CGUIWindowMusicNav);               // window id = 502
@@ -1283,6 +1286,8 @@ void CApplication::StartJSONRPCServer()
 #ifdef HAS_JSONRPC
   if (g_guiSettings.GetBool("services.esenabled"))
   {
+    CJSONRPC::Initialize();
+
     if (CTCPServer::StartServer(g_advancedSettings.m_jsonTcpPort, g_guiSettings.GetBool("services.esallinterfaces")))
       CZeroconf::GetInstance()->PublishService("servers.jsonrpc", "_xbmc-jsonrpc._tcp", "XBMC JSONRPC", g_advancedSettings.m_jsonTcpPort);
   }
@@ -1997,6 +2002,10 @@ void CApplication::NewFrame()
 
 void CApplication::Render()
 {
+  // do not render if we are stopped
+  if (m_bStop)
+    return;
+
   if (!m_AppActive && !m_bStop && (!IsPlayingVideo() || IsPaused()))
   {
     Sleep(1);
@@ -3201,6 +3210,7 @@ bool CApplication::Cleanup()
     g_windowManager.Delete(WINDOW_DIALOG_OSD_TELETEXT);
 
     g_windowManager.Delete(WINDOW_DIALOG_TEXT_VIEWER);
+    g_windowManager.Delete(WINDOW_DIALOG_PLAY_EJECT);
     g_windowManager.Delete(WINDOW_STARTUP_ANIM);
     g_windowManager.Delete(WINDOW_LOGIN_SCREEN);
     g_windowManager.Delete(WINDOW_VISUALISATION);
@@ -3297,7 +3307,7 @@ bool CApplication::Cleanup()
   }
 }
 
-void CApplication::Stop()
+void CApplication::Stop(int exitCode)
 {
   try
   {
@@ -3334,6 +3344,9 @@ void CApplication::Stop()
       CLog::Log(LOGNOTICE, "Not saving settings (settings.xml is not present)");
 
     m_bStop = true;
+    m_AppActive = false;
+    m_AppFocused = false;
+    m_ExitCode = exitCode;
     CLog::Log(LOGNOTICE, "stop all");
 
     // stop scanning before we kill the network and so on
@@ -3421,6 +3434,7 @@ void CApplication::Stop()
 #endif
 
     g_Windowing.DestroyRenderSystem();
+    g_Windowing.DestroyWindow();
     g_Windowing.DestroyWindowSystem();
 
     CLog::Log(LOGNOTICE, "stopped");
@@ -3433,6 +3447,9 @@ void CApplication::Stop()
   // we may not get to finish the run cycle but exit immediately after a call to g_application.Stop()
   // so we may never get to Destroy() in CXBApplicationEx::Run(), we call it here.
   Destroy();
+
+  // 
+  Sleep(200);
 }
 
 bool CApplication::PlayMedia(const CFileItem& item, int iPlaylist)
@@ -3607,6 +3624,29 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
     if (item.IsVideo())
       CUtil::ClearSubtitles();
   }
+
+#ifdef HAS_DVD_DRIVE
+  if (item.IsDiscStub())
+  {
+    // Figure out Line 1 of the dialog
+    CStdString strLine1;
+    if (item.GetVideoInfoTag())
+    {
+      strLine1 = item.GetVideoInfoTag()->m_strTitle;
+    }
+    else
+    {
+      strLine1 = URIUtils::GetFileName(item.m_strPath);
+      URIUtils::RemoveExtension(strLine1);
+    }
+
+    // Display the Play Eject dialog
+    if (CGUIDialogPlayEject::ShowAndGetInput(219, 429, strLine1, NULL))
+      MEDIA_DETECT::CAutorun::PlayDisc();
+
+    return true;
+  }
+#endif
 
   if (item.IsPlayList())
     return false;
@@ -5216,6 +5256,14 @@ float CApplication::GetPercentage() const
     else
       return m_pPlayer->GetPercentage();
   }
+  return 0.0f;
+}
+
+float CApplication::GetCachePercentage() const
+{
+  if (IsPlaying() && m_pPlayer)
+    return m_pPlayer->GetCachePercentage();
+
   return 0.0f;
 }
 

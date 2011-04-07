@@ -20,15 +20,19 @@
  *
  */
 
+#include "PVRTimerInfoTag.h"
 #include "DateTime.h"
 #include "addons/include/xbmc_pvr_types.h"
+#include "utils/Observer.h"
 
 class CFileItem;
+class CEpgInfoTag;
 class CPVREpgInfoTag;
 class CGUIDialogPVRTimerSettings;
-class CPVRTimerInfoTag;
 
-class CPVRTimers : public std::vector<CPVRTimerInfoTag *>
+class CPVRTimers : public std::vector<CPVRTimerInfoTag *>,
+                   public Observer,
+                   public Observable
 {
 private:
   CCriticalSection m_critSection;
@@ -39,8 +43,10 @@ private:
    */
   int LoadFromClients(void);
 
+  void Sort(void);
+
 public:
-  CPVRTimers(void);
+  CPVRTimers(void) {}
 
   /**
    * Load the timers from the clients.
@@ -54,15 +60,15 @@ public:
   void Unload();
 
   /**
-   * Refresh the channel list from the clients.
-   * True if anything was changed.
+   * @brief refresh the channel list from the clients.
    */
-  bool Update();
+  bool Update(void);
 
   /**
    * Update a timer entry in this container.
    */
-  bool Update(const CPVRTimerInfoTag &timer);
+  bool UpdateEntry(const CPVRTimerInfoTag &timer);
+  bool UpdateFromClient(const CPVRTimerInfoTag &timer) { return UpdateEntry(timer); }
 
   /********** getters **********/
 
@@ -168,4 +174,5 @@ public:
   CPVRTimerInfoTag *GetByClient(int iClientId, int iClientTimerId);
   CPVRTimerInfoTag *GetMatch(const CEpgInfoTag *Epg);
   CPVRTimerInfoTag *GetMatch(const CFileItem *item);
+  virtual void Notify(const Observable &obs, const CStdString& msg);
 };

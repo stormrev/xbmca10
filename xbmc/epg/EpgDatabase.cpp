@@ -19,6 +19,7 @@
  *
  */
 
+#include "dbwrappers/dataset.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/VideoSettings.h"
 #include "utils/log.h"
@@ -137,7 +138,7 @@ bool CEpgDatabase::DeleteEpg(void)
   return bReturn;
 }
 
-bool CEpgDatabase::Delete(const CEpg &table, const CDateTime &start /* = NULL */, const CDateTime &end /* = NULL */)
+bool CEpgDatabase::Delete(const CEpg &table, const time_t start /* = 0 */, const time_t end /* = 0 */)
 {
   /* invalid channel */
   if (table.EpgID() <= 0)
@@ -153,19 +154,11 @@ bool CEpgDatabase::Delete(const CEpg &table, const CDateTime &start /* = NULL */
   CStdString strWhereClause;
   strWhereClause = FormatSQL("idEpg = %u", table.EpgID());
 
-  if (start != NULL)
-  {
-    time_t iStartTime;
-    start.GetAsTime(iStartTime);
-    strWhereClause.append(FormatSQL(" AND iStartTime < %u", iStartTime).c_str());
-  }
+  if (start != 0)
+    strWhereClause.append(FormatSQL(" AND iStartTime < %u", start).c_str());
 
-  if (end != NULL)
-  {
-    time_t iEndTime;
-    end.GetAsTime(iEndTime);
-    strWhereClause.append(FormatSQL(" AND iEndTime > %u", iEndTime).c_str());
-  }
+  if (end != 0)
+    strWhereClause.append(FormatSQL(" AND iEndTime > %u", end).c_str());
 
   return DeleteValues("epgtags", strWhereClause);
 }
@@ -235,26 +228,12 @@ int CEpgDatabase::Get(CEpgContainer *container)
   return iReturn;
 }
 
-int CEpgDatabase::Get(CEpg *epg, const CDateTime &start /* = NULL */, const CDateTime &end /* = NULL */)
+int CEpgDatabase::Get(CEpg *epg)
 {
   int iReturn = -1;
 
   CStdString strWhereClause;
   strWhereClause = FormatSQL("idEpg = %u", epg->EpgID());
-
-  if (start != NULL)
-  {
-    time_t iStartTime;
-    start.GetAsTime(iStartTime);
-    strWhereClause.append(FormatSQL(" AND iStartTime < %u", iStartTime).c_str());
-  }
-
-  if (end != NULL)
-  {
-    time_t iEndTime;
-    end.GetAsTime(iEndTime);
-    strWhereClause.append(FormatSQL(" AND iEndTime > %u", iEndTime).c_str());
-  }
 
   CStdString strQuery;
   strQuery.Format("SELECT * FROM epgtags WHERE %s ORDER BY iStartTime ASC;", strWhereClause.c_str());
@@ -291,10 +270,10 @@ int CEpgDatabase::Get(CEpg *epg, const CDateTime &start /* = NULL */, const CDat
         newTag.m_iParentalRating    = m_pDS->fv("iParentalRating").get_asInt();
         newTag.m_iStarRating        = m_pDS->fv("iStarRating").get_asInt();
         newTag.m_bNotify            = m_pDS->fv("bNotify").get_asBool();
-        newTag.m_iEpisodeNum        = m_pDS->fv("iEpisodeId").get_asInt();
+        newTag.m_iEpisodeNumber        = m_pDS->fv("iEpisodeId").get_asInt();
         newTag.m_iEpisodePart       = m_pDS->fv("iEpisodePart").get_asInt();
         newTag.m_strEpisodeName     = m_pDS->fv("sEpisodeName").get_asString().c_str();
-        newTag.m_iSeriesNum         = m_pDS->fv("iSeriesId").get_asInt();
+        newTag.m_iSeriesNumber         = m_pDS->fv("iSeriesId").get_asInt();
 
         epg->AddEntry(newTag);
         ++iReturn;
@@ -380,9 +359,9 @@ int CEpgDatabase::Persist(const CEpgInfoTag &tag, bool bSingleUpdate /* = true *
   }
 
   time_t iStartTime, iEndTime, iFirstAired;
-  tag.Start().GetAsTime(iStartTime);
-  tag.End().GetAsTime(iEndTime);
-  tag.FirstAired().GetAsTime(iFirstAired);
+  tag.StartAsUTC().GetAsTime(iStartTime);
+  tag.EndAsUTC().GetAsTime(iEndTime);
+  tag.FirstAiredAsUTC().GetAsTime(iFirstAired);
   int iEpgId = epg->EpgID();
 
   int iBroadcastId = tag.BroadcastId();
@@ -429,7 +408,7 @@ int CEpgDatabase::Persist(const CEpgInfoTag &tag, bool bSingleUpdate /* = true *
         "VALUES (%u, %u, %u, '%s', '%s', '%s', %i, %i, %u, %i, %i, %i, %i, %i, %i, '%s', %i, %i);",
         iEpgId, iStartTime, iEndTime,
         tag.Title().c_str(), tag.PlotOutline().c_str(), tag.Plot().c_str(), tag.GenreType(), tag.GenreSubType(),
-        tag.FirstAired().GetAsDBDateTime().c_str(), tag.ParentalRating(), tag.StarRating(), tag.Notify(),
+        tag.FirstAiredAsUTC().GetAsDBDateTime().c_str(), tag.ParentalRating(), tag.StarRating(), tag.Notify(),
         tag.SeriesNum(), tag.EpisodeNum(), tag.EpisodePart(), tag.EpisodeName().c_str(),
         tag.UniqueBroadcastID(), iBroadcastId);
   }

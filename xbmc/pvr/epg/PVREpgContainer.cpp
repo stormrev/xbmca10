@@ -23,10 +23,11 @@
 #include "PVREpgContainer.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "pvr/timers/PVRTimers.h"
+#include "pvr/recordings/PVRRecordings.h"
 #include "pvr/windows/GUIWindowPVR.h"
 #include "guilib/GUIWindowManager.h"
+#include "utils/log.h"
 
 using namespace std;
 
@@ -47,7 +48,7 @@ bool CPVREpgContainer::CreateChannelEpgs(void)
   for (int radio = 0; radio <= 1; radio++)
   {
     const CPVRChannelGroup *channels = CPVRManager::GetChannelGroups()->GetGroupAll(radio == 1);
-    for (unsigned int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
+    for (int iChannelPtr = 0; iChannelPtr < channels->GetNumChannels(); iChannelPtr++)
     {
       CPVRChannel *channel = (CPVRChannel *) channels->GetByIndex(iChannelPtr);
       CEpg *epg = GetById(channel->ChannelID());
@@ -73,10 +74,10 @@ int CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false *
     return -1;
 
   CSingleLock lock(m_critSection);
-  for (unsigned int iChannelPtr = 0; iChannelPtr < group->Size(); iChannelPtr++)
+  for (int iChannelPtr = 0; iChannelPtr < group->GetNumChannels(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) group->GetByIndex(iChannelPtr);
-    if (!channel)
+    if (!channel || channel->IsHidden())
       continue;
 
     channel->GetEPG(results);
@@ -157,8 +158,8 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
         if (epgentry)
         {
           if (epgentry->ChannelTag()->ChannelNumber() != timer->ChannelNumber() ||
-              epgentry->Start()                       <  timer->m_StartTime ||
-              epgentry->End()                         >  timer->m_StopTime)
+              epgentry->StartAsUTC()                   <  timer->StartAsUTC() ||
+              epgentry->EndAsUTC()                     >  timer->EndAsUTC())
             continue;
 
           results->Remove(iResultPtr);
@@ -177,7 +178,7 @@ int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
   CSingleLock lock(m_critSection);
   int iInitialSize           = results->Size();
 
-  for (unsigned int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
+  for (int iChannelPtr = 0; iChannelPtr < channels->GetNumChannels(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) channels->GetByIndex(iChannelPtr);
     CPVREpg *epg = channel->GetEPG();
@@ -189,7 +190,7 @@ int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
       continue;
 
     CFileItemPtr entry(new CFileItem(*epgNow));
-    entry->SetLabel2(epgNow->Start().GetAsLocalizedTime("", false));
+    entry->SetLabel2(epgNow->StartAsLocalTime().GetAsLocalizedTime("", false));
     entry->m_strPath = channel->ChannelName();
     entry->SetThumbnailImage(channel->IconPath());
     results->Add(entry);
@@ -204,7 +205,7 @@ int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
   CSingleLock lock(m_critSection);
   int iInitialSize           = results->Size();
 
-  for (unsigned int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
+  for (int iChannelPtr = 0; iChannelPtr < channels->GetNumChannels(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) channels->GetByIndex(iChannelPtr);
     CPVREpg *epg = channel->GetEPG();
@@ -216,7 +217,7 @@ int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
       continue;
 
     CFileItemPtr entry(new CFileItem(*epgNext));
-    entry->SetLabel2(epgNext->Start().GetAsLocalizedTime("", false));
+    entry->SetLabel2(epgNext->StartAsLocalTime().GetAsLocalizedTime("", false));
     entry->m_strPath = channel->ChannelName();
     entry->SetThumbnailImage(channel->IconPath());
     results->Add(entry);

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -30,33 +30,44 @@
 #include "dialogs/GUIDialogOK.h"
 #include "music/tags/MusicInfoTag.h"
 #include "utils/log.h"
+#include "threads/SingleLock.h"
 
 #include "PVRChannelGroupsContainer.h"
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
-#include "pvr/epg/PVREpgInfoTag.h"
-
-using namespace MUSIC_INFO;
+#include "pvr/addons/PVRClients.h"
+#include "pvr/epg/PVREpgContainer.h"
 
 CPVRChannelGroup::CPVRChannelGroup(bool bRadio, unsigned int iGroupId, const CStdString &strGroupName, int iSortOrder)
 {
-  m_bRadio          = bRadio;
-  m_iGroupId        = iGroupId;
-  m_strGroupName    = strGroupName;
-  m_iSortOrder      = iSortOrder;
-  m_bInhibitSorting = false;
-  m_bLoaded         = false;
+  m_bRadio       = bRadio;
+  m_iGroupId     = iGroupId;
+  m_strGroupName = strGroupName;
+  m_iSortOrder   = iSortOrder;
+  m_bLoaded      = false;
+  m_bChanged     = false;
   clear();
 }
 
 CPVRChannelGroup::CPVRChannelGroup(bool bRadio)
 {
-  m_bRadio          = bRadio;
-  m_iGroupId        = -1;
+  m_bRadio       = bRadio;
+  m_iGroupId     = -1;
   m_strGroupName.clear();
-  m_iSortOrder      = -1;
-  m_bInhibitSorting = false;
-  m_bLoaded         = false;
+  m_iSortOrder   = -1;
+  m_bLoaded      = false;
+  m_bChanged     = false;
+  clear();
+}
+
+CPVRChannelGroup::CPVRChannelGroup(const PVR_CHANNEL_GROUP &group)
+{
+  m_bRadio       = group.bIsRadio;
+  m_iGroupId     = -1;
+  m_strGroupName = group.strGroupName;
+  m_iSortOrder   = -1;
+  m_bLoaded      = false;
+  m_bChanged     = false;
   clear();
 }
 
@@ -98,21 +109,28 @@ int CPVRChannelGroup::Load(void)
   return size();
 }
 
-void CPVRChannelGroup::Unload()
+void CPVRChannelGroup::Unload(void)
 {
   clear();
 }
 
-bool CPVRChannelGroup::Update()
+bool CPVRChannelGroup::Update(void)
 {
-  // TODO implement method to get channel groups from clients
-  return true;
+  CPVRChannelGroup PVRChannels_tmp(m_bRadio, m_iGroupId, m_strGroupName, m_iSortOrder);
+  PVRChannels_tmp.LoadFromClients();
+
+  return UpdateGroupEntries(PVRChannels_tmp);
 }
 
 bool CPVRChannelGroup::Update(const CPVRChannelGroup &group)
 {
-  m_strGroupName = group.GroupName();
-  m_iSortOrder   = group.SortOrder();
+  CSingleLock lock(m_critSection);
+  if (!m_strGroupName.Equals(group.GroupName()) || m_iSortOrder != group.SortOrder())
+  {
+    m_bChanged = true;
+    m_strGroupName = group.GroupName();
+    m_iSortOrder   = group.SortOrder();
+  }
 
   return true;
 }
@@ -122,7 +140,8 @@ bool CPVRChannelGroup::MoveChannel(unsigned int iOldChannelNumber, unsigned int 
   if (iOldChannelNumber == iNewChannelNumber)
     return true;
 
-  bool bReturn = false;
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
 
   /* make sure the list is sorted by channel number */
   SortByChannelNumber();
@@ -143,6 +162,8 @@ bool CPVRChannelGroup::MoveChannel(unsigned int iOldChannelNumber, unsigned int 
   /* renumber the list */
   Renumber();
 
+  m_bChanged = true;
+
   if (bSaveInDb)
     bReturn = Persist();
   else
@@ -161,6 +182,7 @@ void CPVRChannelGroup::SearchAndSetChannelIcons(bool bUpdateDb /* = false */)
 
   CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
   database->Open();
+  CSingleLock lock(m_critSection);
 
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -200,33 +222,29 @@ void CPVRChannelGroup::SearchAndSetChannelIcons(bool bUpdateDb /* = false */)
 
 struct sortByClientChannelNumber
 {
-  bool operator()(PVRChannelGroupMember channel1, PVRChannelGroupMember channel2)
+  bool operator()(const PVRChannelGroupMember &channel1, const PVRChannelGroupMember &channel2)
   {
-    return channel1.channel->ClientChannelNumber() > 0 && channel1.channel->ClientChannelNumber() < channel2.channel->ClientChannelNumber();
+    return channel1.channel->ClientChannelNumber() < channel2.channel->ClientChannelNumber();
   }
 };
 
 struct sortByChannelNumber
 {
-  bool operator()(PVRChannelGroupMember channel1, PVRChannelGroupMember channel2)
+  bool operator()(const PVRChannelGroupMember &channel1, const PVRChannelGroupMember &channel2)
   {
-    return channel1.iChannelNumber > 0 && channel1.iChannelNumber < channel2.iChannelNumber;
+    return channel1.iChannelNumber < channel2.iChannelNumber;
   }
 };
 
 void CPVRChannelGroup::SortByClientChannelNumber(void)
 {
-  if (m_bInhibitSorting)
-    return;
-
+  CSingleLock lock(m_critSection);
   sort(begin(), end(), sortByClientChannelNumber());
 }
 
 void CPVRChannelGroup::SortByChannelNumber(void)
 {
-  if (m_bInhibitSorting)
-    return;
-
+  CSingleLock lock(m_critSection);
   sort(begin(), end(), sortByChannelNumber());
 }
 
@@ -235,6 +253,7 @@ void CPVRChannelGroup::SortByChannelNumber(void)
 const CPVRChannel *CPVRChannelGroup::GetByClient(int iUniqueChannelId, int iClientID) const
 {
   CPVRChannel *channel = NULL;
+  CSingleLock lock(m_critSection);
 
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -253,6 +272,7 @@ const CPVRChannel *CPVRChannelGroup::GetByClient(int iUniqueChannelId, int iClie
 const CPVRChannel *CPVRChannelGroup::GetByChannelID(int iChannelID) const
 {
   CPVRChannel *channel = NULL;
+  CSingleLock lock(m_critSection);
 
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -270,6 +290,7 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelID(int iChannelID) const
 const CPVRChannel *CPVRChannelGroup::GetByUniqueID(int iUniqueID) const
 {
   CPVRChannel *channel = NULL;
+  CSingleLock lock(m_critSection);
 
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -285,15 +306,16 @@ const CPVRChannel *CPVRChannelGroup::GetByUniqueID(int iUniqueID) const
 }
 
 
-unsigned int CPVRChannelGroup::GetChannelNumber(const CPVRChannel *channel) const
+unsigned int CPVRChannelGroup::GetChannelNumber(const CPVRChannel &channel) const
 {
   unsigned int iReturn = 0;
+  CSingleLock lock(m_critSection);
   unsigned int iSize = size();
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < iSize; iChannelPtr++)
   {
     PVRChannelGroupMember member = at(iChannelPtr);
-    if (member.channel->ChannelID() == channel->ChannelID())
+    if (member.channel->ChannelID() == channel.ChannelID())
     {
       iReturn = member.iChannelNumber;
       break;
@@ -306,6 +328,7 @@ unsigned int CPVRChannelGroup::GetChannelNumber(const CPVRChannel *channel) cons
 const CPVRChannel *CPVRChannelGroup::GetByChannelNumber(unsigned int iChannelNumber) const
 {
   CPVRChannel *channel = NULL;
+  CSingleLock lock(m_critSection);
 
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -320,8 +343,9 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelNumber(unsigned int iChannelNum
   return channel;
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelUp(const CPVRChannel *channel) const
+const CPVRChannel *CPVRChannelGroup::GetByChannelUp(const CPVRChannel &channel) const
 {
+  CSingleLock lock(m_critSection);
   unsigned int iChannelNumber = GetChannelNumber(channel) + 1;
   if (iChannelNumber > size())
     iChannelNumber = 1;
@@ -329,8 +353,10 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelUp(const CPVRChannel *channel) 
   return GetByChannelNumber(iChannelNumber);
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelDown(const CPVRChannel *channel) const
+const CPVRChannel *CPVRChannelGroup::GetByChannelDown(const CPVRChannel &channel) const
 {
+  CSingleLock lock(m_critSection);
+
   int iChannelNumber = GetChannelNumber(channel) - 1;
   if (iChannelNumber <= 0)
     iChannelNumber = size();
@@ -340,6 +366,7 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelDown(const CPVRChannel *channel
 
 const CPVRChannel *CPVRChannelGroup::GetByIndex(unsigned int iIndex) const
 {
+  CSingleLock lock(m_critSection);
   return iIndex < size() ?
     at(iIndex).channel :
     NULL;
@@ -348,6 +375,7 @@ const CPVRChannel *CPVRChannelGroup::GetByIndex(unsigned int iIndex) const
 int CPVRChannelGroup::GetMembers(CFileItemList *results, bool bGroupMembers /* = true */) const
 {
   int iOrigSize = results->Size();
+  CSingleLock lock(m_critSection);
 
   const CPVRChannelGroup *channels = bGroupMembers ? this : CPVRManager::GetChannelGroups()->GetGroupAll(m_bRadio);
   for (unsigned int iChannelPtr = 0; iChannelPtr < channels->size(); iChannelPtr++)
@@ -376,23 +404,23 @@ int CPVRChannelGroup::LoadFromDb(bool bCompress /* = false */)
 
   int iChannelCount = size();
 
-  m_bInhibitSorting = true;
   database->GetChannelsInGroup(this);
   database->Close();
-  m_bInhibitSorting = false;
 
   return size() - iChannelCount;
 }
 
-int CPVRChannelGroup::LoadFromClients(bool bAddToDb /* = true */)
+int CPVRChannelGroup::LoadFromClients(void)
 {
-  // TODO add support to load channel groups from clients
-  return -1;
-}
+  int iCurSize = size();
 
-int CPVRChannelGroup::GetFromClients(void)
-{
-  return -1;
+  /* get the channels from the backends */
+  PVR_ERROR error;
+  CPVRManager::GetClients()->GetChannelGroupMembers(this, &error);
+  if (error != PVR_ERROR_NO_ERROR)
+    CLog::Log(LOGWARNING, "PVRChannelGroup - %s - got bad error (%d) on call to GetChannelGroupMembers", __FUNCTION__, error);
+
+  return size() - iCurSize;
 }
 
 bool CPVRChannelGroup::RemoveByUniqueID(int iUniqueID)
@@ -402,6 +430,7 @@ bool CPVRChannelGroup::RemoveByUniqueID(int iUniqueID)
     if (at(ptr).channel->UniqueID() == iUniqueID)
     {
       erase(begin() + ptr);
+      m_bChanged = true;
       return true;
     }
   }
@@ -409,10 +438,76 @@ bool CPVRChannelGroup::RemoveByUniqueID(int iUniqueID)
   return false;
 }
 
-bool CPVRChannelGroup::UpdateGroupEntries(CPVRChannelGroup *channels)
+bool CPVRChannelGroup::UpdateGroupEntries(const CPVRChannelGroup &channels)
 {
-  // TODO
-  return false;
+  bool bChanged(false);
+  CSingleLock lock(m_critSection);
+  int iCurSize = size();
+
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
+  if (!database || !database->Open())
+    return false;
+
+  /* go through the channel list and check for updated or new channels */
+  for (unsigned int iChannelPtr = 0; iChannelPtr < channels.size(); iChannelPtr++)
+  {
+    CPVRChannel *channel = channels.at(iChannelPtr).channel;
+    int iChannelNumber   = channels.at(iChannelPtr).iChannelNumber;
+    if (!channel)
+      continue;
+
+    CPVRChannel *realChannel = (CPVRChannel *) CPVRManager::GetChannelGroups()->GetGroupAll(m_bRadio)->GetByClient(channel->UniqueID(), channel->ClientID());
+    if (!realChannel)
+      continue;
+
+    if (!IsGroupMember(realChannel))
+    {
+      AddToGroup(realChannel, iChannelNumber, false);
+
+      bChanged = true;
+      m_bChanged = true;
+      CLog::Log(LOGINFO,"PVRChannelGroup - %s - added %s channel '%s' at position %d in group '%s'",
+          __FUNCTION__, m_bRadio ? "radio" : "TV", realChannel->ChannelName().c_str(), iChannelNumber, GroupName().c_str());
+    }
+  }
+
+  /* check for deleted channels */
+  unsigned int iSize = size();
+  for (unsigned int iChannelPtr = 0; iChannelPtr < iSize; iChannelPtr++)
+  {
+    CPVRChannel *channel = (CPVRChannel *) GetByIndex(iChannelPtr);
+    if (!channel)
+      continue;
+    if (channels.GetByClient(channel->UniqueID(), channel->ClientID()) == NULL)
+    {
+      /* channel was not found */
+      CLog::Log(LOGINFO,"PVRChannelGroup - %s - deleted %s channel '%s' from group '%s'",
+          __FUNCTION__, m_bRadio ? "radio" : "TV", channel->ChannelName().c_str(), GroupName().c_str());
+
+      /* remove this channel from all non-system groups */
+      RemoveFromGroup(channel);
+
+      m_bChanged = true;
+      bChanged = true;
+      iChannelPtr--;
+      iSize--;
+    }
+  }
+
+  if (bChanged)
+  {
+    /* sort by client channel number if this is the first time */
+    if (iCurSize == 0)
+      SortByClientChannelNumber();
+
+    /* renumber to make sure all channels have a channel number.
+       new channels were added at the back, so they'll get the highest numbers */
+    Renumber();
+
+    return Persist();
+  }
+
+  return true;
 }
 
 void CPVRChannelGroup::RemoveInvalidChannels(void)
@@ -429,6 +524,7 @@ void CPVRChannelGroup::RemoveInvalidChannels(void)
           __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
       erase(begin() + ptr);
       ptr--;
+      m_bChanged = true;
       continue;
     }
 
@@ -438,6 +534,7 @@ void CPVRChannelGroup::RemoveInvalidChannels(void)
           __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
       erase(begin() + ptr);
       ptr--;
+      m_bChanged = true;
       continue;
     }
   }
@@ -445,7 +542,8 @@ void CPVRChannelGroup::RemoveInvalidChannels(void)
 
 bool CPVRChannelGroup::RemoveFromGroup(CPVRChannel *channel)
 {
-  bool bReturn = false;
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
   {
@@ -454,6 +552,7 @@ bool CPVRChannelGroup::RemoveFromGroup(CPVRChannel *channel)
       // TODO notify observers
       erase(begin() + iChannelPtr);
       bReturn = true;
+      m_bChanged = true;
       break;
     }
   }
@@ -463,15 +562,17 @@ bool CPVRChannelGroup::RemoveFromGroup(CPVRChannel *channel)
   return bReturn;
 }
 
-bool CPVRChannelGroup::AddToGroup(CPVRChannel *channel, int iChannelNumber /* = 0 */)
+bool CPVRChannelGroup::AddToGroup(CPVRChannel *channel, int iChannelNumber /* = 0 */, bool bSortAndRenumber /* = true */)
 {
-  bool bReturn = false;
+  CSingleLock lock(m_critSection);
+
+  bool bReturn(false);
   if (!channel)
     return bReturn;
 
   if (!CPVRChannelGroup::IsGroupMember(channel))
   {
-    if (iChannelNumber <= 0)
+    if (iChannelNumber <= 0 || iChannelNumber > (int) size() + 1)
       iChannelNumber = size() + 1;
 
     CPVRChannel *realChannel = (IsInternalGroup()) ?
@@ -481,9 +582,16 @@ bool CPVRChannelGroup::AddToGroup(CPVRChannel *channel, int iChannelNumber /* = 
     if (realChannel)
     {
       PVRChannelGroupMember newMember = { realChannel, iChannelNumber };
-      // TODO notify observers
       push_back(newMember);
-      SortByChannelNumber();
+      m_bChanged = true;
+
+      if (bSortAndRenumber)
+      {
+        SortByChannelNumber();
+        Renumber();
+      }
+
+      // TODO notify observers
       bReturn = true;
     }
   }
@@ -493,7 +601,8 @@ bool CPVRChannelGroup::AddToGroup(CPVRChannel *channel, int iChannelNumber /* = 
 
 bool CPVRChannelGroup::IsGroupMember(const CPVRChannel *channel) const
 {
-  bool bReturn = false;
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
   {
@@ -510,6 +619,7 @@ bool CPVRChannelGroup::IsGroupMember(const CPVRChannel *channel) const
 const CPVRChannel *CPVRChannelGroup::GetFirstChannel(void) const
 {
   CPVRChannel *channel = NULL;
+  CSingleLock lock(m_critSection);
 
   if (size() > 0)
     channel = at(0).channel;
@@ -519,12 +629,14 @@ const CPVRChannel *CPVRChannelGroup::GetFirstChannel(void) const
 
 bool CPVRChannelGroup::SetGroupName(const CStdString &strGroupName, bool bSaveInDb /* = false */)
 {
-  bool bReturn = false;
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
 
   if (m_strGroupName != strGroupName)
   {
     /* update the name */
     m_strGroupName = strGroupName;
+    m_bChanged = true;
 //    SetChanged();
 
     /* persist the changes */
@@ -539,12 +651,19 @@ bool CPVRChannelGroup::SetGroupName(const CStdString &strGroupName, bool bSaveIn
 
 bool CPVRChannelGroup::Persist(void)
 {
+  CSingleLock lock(m_critSection);
+  if (!HasChanges())
+    return true;
+
   CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
   if (database && database->Open())
   {
+    CLog::Log(LOGDEBUG, "CPVRChannelGroup - %s - persisting channel group '%s' with %d channels",
+        __FUNCTION__, GroupName().c_str(), (int) size());
     database->Persist(this);
     database->Close();
 
+    m_bChanged = false;
     return true;
   }
 
@@ -553,9 +672,60 @@ bool CPVRChannelGroup::Persist(void)
 
 void CPVRChannelGroup::Renumber(void)
 {
-  int iChannelNumber = 0;
+  unsigned int iChannelNumber = 0;
   for (unsigned int ptr = 0; ptr < size();  ptr++)
   {
+    if (at(ptr).iChannelNumber != iChannelNumber + 1)
+      m_bChanged = true;
+
     at(ptr).iChannelNumber = ++iChannelNumber;
+  }
+}
+
+bool CPVRChannelGroup::HasChangedChannels(void) const
+{
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    if (at(iChannelPtr).channel->IsChanged())
+    {
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
+}
+
+bool CPVRChannelGroup::HasNewChannels(void) const
+{
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    if (at(iChannelPtr).channel->ChannelID() <= 0)
+    {
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
+}
+
+bool CPVRChannelGroup::HasChanges(void) const
+{
+  CSingleLock lock(m_critSection);
+  return m_bChanged || HasNewChannels() || HasChangedChannels();
+}
+
+void CPVRChannelGroup::CacheIcons(void)
+{
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    at(iChannelPtr).channel->CacheIcon();
   }
 }

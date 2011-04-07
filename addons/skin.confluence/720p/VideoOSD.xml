@@ -233,7 +233,7 @@
 					<posy>0</posy>
 					<width>45</width>
 					<height>45</height>
-					<label>$LOCALIZE[19029]$INFO[VideoPlayer.ChannelName, - ]</label>
+					<label>$LOCALIZE[19222]$INFO[VideoPlayer.ChannelName, - ]</label>
 					<font>-</font>
 					<texturefocus>OSDepgFO.png</texturefocus>
 					<texturenofocus>OSDepgNF.png</texturenofocus>
@@ -711,6 +711,15 @@
 				<font>font24_title</font>
 				<textcolor>grey</textcolor>
 				<shadowcolor>black</shadowcolor>
+			</control>
+			<control type="progress">
+				<description>ProgressbarCache</description>
+				<posx>230</posx>
+				<posy>40r</posy>
+				<width>820</width>
+				<height>14</height>
+				<info>Player.ProgressCache</info>
+				<midtexture border="6,0,6,0">OSDProgressMidLight.png</midtexture>
 			</control>
 			<control type="progress">
 				<description>Progressbar</description>

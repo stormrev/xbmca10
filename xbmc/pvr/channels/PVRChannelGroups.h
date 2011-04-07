@@ -25,6 +25,8 @@
 #include "DateTime.h"
 #include "FileItem.h"
 #include "PVRChannelGroup.h"
+#include "PVRChannelGroupInternal.h"
+#include "threads/SingleLock.h"
 
 class CPVRChannelGroupsContainer;
 
@@ -35,7 +37,8 @@ class CPVRChannelGroups : public std::vector<CPVRChannelGroup *>
   friend class CPVRChannelGroupsContainer;
 
 private:
-  bool  m_bRadio; /*!< true if this is a container for radio channels, false if it is for tv channels */
+  bool             m_bRadio;      /*!< true if this is a container for radio channels, false if it is for tv channels */
+  CCriticalSection m_critSection;
 
   /*!
    * @brief Get the index in this container of the channel group with the given ID.
@@ -43,13 +46,19 @@ private:
    * @return The index or -1 if it wasn't found.
    */
   int GetIndexForGroupID(int iGroupId) const;
+  int GetIndexForGroupName(const CStdString &strName) const;
+  bool LoadUserDefinedChannelGroups(void);
+  bool GetGroupsFromClients(void);
 
 protected:
   /*!
    * @brief Update the contents of the groups in this container.
+   * @param bChannelsOnly Set to true to only update channels, not the groups themselves.
    * @return True if the update was successful, false otherwise.
    */
-  bool Update(void);
+  bool Update(bool bChannelsOnly = false);
+
+  bool UpdateGroupsEntries(const CPVRChannelGroups &groups);
 
 public:
   /*!
@@ -73,9 +82,11 @@ public:
   /*!
    * @brief Update a group or add it if it's not in here yet.
    * @param group The group to update.
+   * @param bSaveInDb True to save the changes in the db.
    * @return True if the group was added or update successfully, false otherwise.
    */
-  bool Update(const CPVRChannelGroup &group);
+  bool Update(const CPVRChannelGroup &group, bool bSaveInDb = false);
+  bool UpdateFromClient(const CPVRChannelGroup &group);
 
   /*!
    * @brief Get a pointer to a channel group given it's ID.
@@ -186,4 +197,6 @@ public:
    * @return True if everything was persisted, false otherwise.
    */
   bool PersistAll(void);
+
+  bool IsRadio(void) const { return m_bRadio; }
 };

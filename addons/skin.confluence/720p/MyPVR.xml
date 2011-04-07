@@ -5,7 +5,7 @@
 		<include>CommonTVBackground</include>
 
 		<control type="group">
-			<visible>Control.IsVisible(11) | Control.IsVisible(12)</visible>
+			<visible>!Control.IsVisible(11) + !Control.IsVisible(12)</visible>
 			<control type="image">
 				<posx>0</posx>
 				<posy>0</posy>
@@ -227,7 +227,7 @@
 					<posy>80</posy>
 					<textwidth>235</textwidth>
 					<include>ButtonCommonValues</include>
-					<label>$LOCALIZE[19029]: $LOCALIZE[19030]</label>
+					<label>$LOCALIZE[19222]: $LOCALIZE[19030]</label>
 					<onleft>10</onleft>
 					<onright>10</onright>
 					<onup>33</onup>

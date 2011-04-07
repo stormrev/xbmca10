@@ -84,8 +84,8 @@
 #endif
 #endif
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/channels/PVRChannelGroup.h"
 #include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
 #include "network/GUIDialogAccessPoints.h"
 #include "filesystem/Directory.h"
 
@@ -1344,7 +1344,7 @@ void CGUIWindowSettingsCategory::OnSettingChanged(CBaseSettingControl *pSettingC
     CGUISpinControlEx *pControl = (CGUISpinControlEx *)GetControl(pSettingControl->GetID());
 #if defined(_LINUX) && !defined(__APPLE__)
       g_guiSettings.SetString("audiooutput.passthroughdevice", m_DigitalAudioSinkMap[pControl->GetCurrentLabel()]);
-#else !defined(__arm__)
+#elif !defined(__arm__)
       g_guiSettings.SetString("audiooutput.passthroughdevice", pControl->GetCurrentLabel());
 #endif
   }
