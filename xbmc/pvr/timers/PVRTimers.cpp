@@ -34,6 +34,11 @@
 
 using namespace std;
 
+CPVRTimers::CPVRTimers(void)
+{
+  m_bIsUpdating = false;
+}
+
 int CPVRTimers::Load()
 {
   Unload();
@@ -69,12 +74,40 @@ void CPVRTimers::Sort(void)
   sort(begin(), end(), sortByStartTime());
 }
 
-bool CPVRTimers::Update(void)
+bool CPVRTimers::Update(bool bAsyncUpdate /* = false */)
 {
+  CSingleLock lock(m_critSection);
+  if (m_bIsUpdating)
+    return false;
+  m_bIsUpdating = true;
+  lock.Leave();
+
+  if (bAsyncUpdate)
+  {
+    StopThread();
+    Create();
+    SetName("XBMC PVR timers update");
+    SetPriority(-1);
+    return false;
+  }
+  else
+  {
+    return ExecuteUpdate();
+  }
+}
+
+bool CPVRTimers::ExecuteUpdate(void)
+{
+  CLog::Log(LOGDEBUG, "CPVRTimers - %s - updating timers", __FUNCTION__);
   CPVRTimers PVRTimers_tmp;
   PVRTimers_tmp.LoadFromClients();
 
   return UpdateEntries(&PVRTimers_tmp);
+}
+
+void CPVRTimers::Process(void)
+{
+  ExecuteUpdate();
 }
 
 bool CPVRTimers::IsRecording(void)
@@ -156,11 +189,14 @@ bool CPVRTimers::UpdateEntries(CPVRTimers *timers)
     }
   }
 
+  m_bIsUpdating = false;
   if (bChanged)
   {
     Sort();
     SetChanged();
-    NotifyObservers("timers");
+    lock.Leave();
+
+    NotifyObservers("timers", false);
   }
 
   return bChanged;
