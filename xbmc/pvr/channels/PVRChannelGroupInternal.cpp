@@ -384,15 +384,15 @@ bool CPVRChannelGroupInternal::Persist(void)
 {
   bool bReturn(false);
   CSingleLock lock(m_critSection);
-  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
 
-  if (!database || !database->Open())
-    return bReturn;
+  bool bHasNewChannels = HasNewChannels();
+  bool bHasChangedChannels = HasChangedChannels();
 
+  if (bHasNewChannels || bHasChangedChannels)
   CLog::Log(LOGDEBUG, "CPVRChannelGroupInternal - %s - persisting %d channels",
       __FUNCTION__, (int) size());
 
-  if (HasNewChannels())
+  if (bHasNewChannels)
   {
     CLog::Log(LOGDEBUG, "CPVRChannelGroupInternal - %s - group '%s' has new channels. writing changes directly",
         __FUNCTION__, GroupName().c_str());
@@ -408,21 +408,30 @@ bool CPVRChannelGroupInternal::Persist(void)
       }
     }
   }
-  else
+  else if (bHasChangedChannels)
   {
+    /* open the database */
+    CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
+    if (!database || !database->Open())
+    {
+      CLog::Log(LOGERROR, "CPVRChannelGroupInternal - %s - failed to open the database", __FUNCTION__);
+      return false;
+    }
+
     /* queue queries */
     for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
       at(iChannelPtr).channel->Persist(true);
+
     /* and commit them */
     bReturn = database->CommitInsertQueries();
     if (!bReturn)
       CLog::Log(LOGERROR, "CPVRChannelGroupInternal - %s - failed to persist channels", __FUNCTION__);
+
+    database->Close();
   }
 
   if (bReturn)
     bReturn = CPVRChannelGroup::Persist();
-
-  database->Close();
 
   return bReturn;
 }

@@ -38,10 +38,9 @@
 #include "settings/Settings.h"
 #include "filesystem/StackDirectory.h"
 
-/* GUI Messages includes */
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogProgress.h"
-#include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogBusy.h"
 
 #include "PVRManager.h"
 #include "addons/PVRClients.h"
@@ -109,31 +108,6 @@ void CPVRManager::Destroy(void)
   }
 }
 
-void CPVRManager::Unload(void)
-{
-  CLog::Log(LOGNOTICE, "PVRManager - stopping");
-
-  /* stop playback if a pvr file is playing */
-  if (IsPlaying())
-  {
-    CLog::Log(LOGNOTICE,"PVRManager - %s - stopping PVR playback", __FUNCTION__);
-    g_application.StopPlaying();
-  }
-
-  /* stop all update threads */
-  StopUpdateThreads();
-
-  m_epg->RemoveObserver(this);
-  m_epg->Unload();
-
-  m_recordings->Unload();
-  m_timers->Unload();
-  m_channelGroups->Unload();
-  m_addons->Unload();
-
-  m_bLoaded = false;
-}
-
 void CPVRManager::Start(void)
 {
   /* first stop and remove any clients */
@@ -152,8 +126,6 @@ void CPVRManager::Start(void)
 void CPVRManager::Stop(void)
 {
   CSingleLock lock(m_critSectionTriggers);
-  if (!m_bLoaded)
-    return;
   m_bLoaded = false;
   lock.Leave();
 
@@ -166,12 +138,22 @@ void CPVRManager::Stop(void)
   }
 
   StopUpdateThreads();
-  Unload();
+
+  m_epg->RemoveObserver(this);
+  m_epg->Unload();
+
+  m_recordings->Unload();
+  m_timers->Unload();
+  m_channelGroups->Unload();
+  m_addons->Unload();
 }
 
 bool CPVRManager::StartUpdateThreads(void)
 {
   CLog::Log(LOGNOTICE, "PVRManager - starting up");
+
+  m_loadingBusyDialog = (CGUIDialogBusy*)g_windowManager.GetWindow(WINDOW_DIALOG_BUSY);
+  m_loadingBusyDialog->Show();
 
   Create();
   SetName("XBMC PVRManager");
@@ -230,6 +212,11 @@ void CPVRManager::Process(void)
   /* load the pvr data from the db and clients if it's not already loaded */
   if (!Load())
   {
+    if (m_loadingBusyDialog && m_loadingBusyDialog->IsActive())
+    {
+      m_loadingBusyDialog->Close();
+      m_loadingBusyDialog = NULL;
+    }
     CLog::Log(LOGERROR, "PVRManager - %s - failed to load PVR data", __FUNCTION__);
     return;
   }
@@ -243,6 +230,12 @@ void CPVRManager::Process(void)
   /* continue last watched channel after first startup */
   if (!m_bStop && m_bFirstStart && g_guiSettings.GetInt("pvrplayback.startlast") != START_LAST_CHANNEL_OFF)
     ContinueLastChannel();
+
+  if (m_loadingBusyDialog && m_loadingBusyDialog->IsActive())
+  {
+    m_loadingBusyDialog->Close();
+    m_loadingBusyDialog = NULL;
+  }
 
   CLog::Log(LOGDEBUG, "PVRManager - %s - entering main loop", __FUNCTION__);
 
@@ -377,6 +370,7 @@ bool CPVRManager::DisableIfNoClients(void)
   {
     g_guiSettings.SetBool("pvrmanager.enabled", false);
     CLog::Log(LOGNOTICE,"PVRManager - no clients enabled. pvrmanager disabled.");
+    CGUIDialogOK::ShowAndGetInput(257,0,19223,0);
     bReturn = true;
   }
 
@@ -406,44 +400,68 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
   }
 
   if (bShowProgress)
+  {
     pDlgProgress->SetPercentage(10);
+    pDlgProgress->Progress();
+  }
 
   /* stop the thread */
   Stop();
   if (bShowProgress)
+  {
     pDlgProgress->SetPercentage(20);
+    pDlgProgress->Progress();
+  }
 
   if (m_database.Open())
   {
     /* clean the EPG database */
     m_epg->Clear(true);
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(30);
+      pDlgProgress->Progress();
+    }
 
     /* delete all TV channel groups */
     m_database.DeleteChannelGroups(false);
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(50);
+      pDlgProgress->Progress();
+    }
 
     /* delete all radio channel groups */
     m_database.DeleteChannelGroups(true);
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(60);
+      pDlgProgress->Progress();
+    }
 
     /* delete all channels */
     m_database.DeleteChannels();
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(70);
+      pDlgProgress->Progress();
+    }
 
     /* delete all channel settings */
     m_database.DeleteChannelSettings();
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(80);
+      pDlgProgress->Progress();
+    }
 
     /* delete all client information */
     m_database.DeleteClients();
     if (bShowProgress)
+    {
       pDlgProgress->SetPercentage(90);
+      pDlgProgress->Progress();
+    }
 
     m_database.Close();
   }
@@ -740,34 +758,21 @@ void CPVRManager::OnJobComplete(unsigned int jobID, bool success, CJob* job)
     CSingleLock lock(m_critSectionTriggers);
     m_bChannelGroupsUpdating = false;
     m_bChannelsUpdating = false;
-
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_TV);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
   }
   else if (!strcmp(job->GetType(), "pvr-update-channels"))
   {
     CSingleLock lock(m_critSectionTriggers);
     m_bChannelsUpdating = false;
-
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_TV);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
   }
   else if (!strcmp(job->GetType(), "pvr-update-timers"))
   {
     CSingleLock lock(m_critSectionTriggers);
     m_bTimersUpdating = false;
-
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_TIMERS);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_EPG);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_TV);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
   }
   else if (!strcmp(job->GetType(), "pvr-update-recordings"))
   {
     CSingleLock lock(m_critSectionTriggers);
     m_bRecordingsUpdating = false;
-
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_RECORDINGS);
   }
 }
 

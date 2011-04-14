@@ -34,6 +34,7 @@ class CPVRRecordings;
 class CPVRTimers;
 class CPVREpgContainer;
 class CPVRGUIInfo;
+class CGUIDialogBusy;
 
 #define INFO_TOGGLE_TIME 1500
 
@@ -401,11 +402,6 @@ private:
    */
   bool ContinueLastChannel(void);
 
-  /*!
-   * @brief Clean up all data that was created by the PVRManager.
-   */
-  void Unload(void);
-
   void OnJobComplete(unsigned int jobID, bool success, CJob* job);
 
   /** @name singleton instance */
@@ -438,6 +434,7 @@ private:
   CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class */
   bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
   bool                            m_bLoaded;
+  CGUIDialogBusy *                m_loadingBusyDialog;
   //@}
 
   /*--- Previous Channel data ---*/
