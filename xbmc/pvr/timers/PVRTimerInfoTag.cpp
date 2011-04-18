@@ -37,7 +37,7 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(void)
   m_strDirectory       = "/";
   m_strSummary         = "";
   m_bIsActive          = false;
-  m_iClientId          = CPVRManager::GetClients()->GetFirstID();
+  m_iClientId          = g_PVRClients->GetFirstID();
   m_iClientIndex       = -1;
   m_iClientChannelUid  = -1;
   m_bIsRecording       = false;
@@ -54,6 +54,7 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(void)
   m_channel            = NULL;
   m_strFileNameAndPath = "";
   m_strGenre           = "";
+  m_iChannelNumber     = 0;
 }
 
 CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, CPVRChannel *channel, unsigned int iClientId)
@@ -64,7 +65,8 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, CPVRChannel *channel,
   m_bIsActive          = timer.bIsActive;
   m_iClientId          = iClientId;
   m_iClientIndex       = timer.iClientIndex;
-  m_iClientChannelUid  = timer.iClientChannelUid;
+  m_iClientChannelUid  = channel ? channel->UniqueID() : timer.iClientChannelUid;
+  m_iChannelNumber     = channel ? g_PVRChannelGroups->GetGroupAll(channel->IsRadio())->GetChannelNumber(*channel) : 0;
   m_bIsRecording       = timer.bIsRecording;
   m_StartTime          = timer.startTime + g_advancedSettings.m_iPVRTimeCorrection;
   m_StopTime           = timer.endTime + g_advancedSettings.m_iPVRTimeCorrection;
@@ -77,13 +79,12 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, CPVRChannel *channel,
   m_iMarginEnd         = timer.iMarginEnd;
   m_strGenre           = CPVRManager::ConvertGenreIdToString(timer.iGenreType, timer.iGenreSubType);
   m_epgInfo            = NULL;
-  m_channel            = NULL;
+  m_channel            = channel;
+  m_bIsRadio           = channel && channel->IsRadio();
   m_strFileNameAndPath.Format("pvr://client%i/timers/%i", m_iClientId, m_iClientIndex);
 
   if (timer.iEpgUid > 0)
   {
-    m_channel = channel;
-    m_bIsRadio = channel->IsRadio();
     m_epgInfo = (CPVREpgInfoTag *) channel->GetEPG()->GetTag(timer.iEpgUid, m_StartTime);
     if (m_epgInfo)
       m_strGenre = m_epgInfo->Genre();
@@ -136,8 +137,12 @@ bool CPVRTimerInfoTag::operator !=(const CPVRTimerInfoTag& right) const
 
 int CPVRTimerInfoTag::Compare(const CPVRTimerInfoTag &timer) const
 {
-  CDateTimeSpan timerDelta = StartAsUTC() - timer.StartAsUTC();
-  int iTimerDelta = timerDelta.GetSeconds() + timerDelta.GetMinutes() * 60 + timerDelta.GetHours() * 3600 + timerDelta.GetDays() * 86400;
+  int iTimerDelta = 0;
+  if (StartAsUTC() != timer.StartAsUTC())
+  {
+    CDateTimeSpan timerDelta = StartAsUTC() - timer.StartAsUTC();
+    iTimerDelta = (timerDelta.GetSeconds() + timerDelta.GetMinutes() * 60 + timerDelta.GetHours() * 3600 + timerDelta.GetDays() * 86400);
+  }
 
   /* if the start times are equal, compare the priority of the timers */
   return iTimerDelta == 0 ?
@@ -211,14 +216,14 @@ bool CPVRTimerInfoTag::AddToClient(void)
 {
   UpdateEpgEvent();
   PVR_ERROR error;
-  if (!CPVRManager::GetClients()->AddTimer(*this, &error))
+  if (!g_PVRClients->AddTimer(*this, &error))
   {
     DisplayError(error);
     return false;
   }
   else
   {
-    CPVRManager::Get()->TriggerTimersUpdate();
+    g_PVRManager.TriggerTimersUpdate();
     return true;
   }
 }
@@ -228,11 +233,11 @@ bool CPVRTimerInfoTag::DeleteFromClient(bool bForce /* = false */)
   bool bRemoved = false;
   PVR_ERROR error;
 
-  bRemoved = CPVRManager::GetClients()->DeleteTimer(*this, bForce, &error);
+  bRemoved = g_PVRClients->DeleteTimer(*this, bForce, &error);
   if (!bRemoved && error == PVR_ERROR_RECORDING_RUNNING)
   {
     if (CGUIDialogYesNo::ShowAndGetInput(122,0,19122,0))
-      bRemoved = CPVRManager::GetClients()->DeleteTimer(*this, true, &error);
+      bRemoved = g_PVRClients->DeleteTimer(*this, true, &error);
     else
       return false;
   }
@@ -249,7 +254,7 @@ bool CPVRTimerInfoTag::DeleteFromClient(bool bForce /* = false */)
     m_epgInfo = NULL;
   }
 
-  CPVRManager::Get()->TriggerTimersUpdate();
+  g_PVRManager.TriggerTimersUpdate();
   return true;
 }
 
@@ -257,7 +262,7 @@ bool CPVRTimerInfoTag::RenameOnClient(const CStdString &strNewName)
 {
   PVR_ERROR error;
   m_strTitle.Format("%s", strNewName);
-  if (!CPVRManager::GetClients()->RenameTimer(*this, m_strTitle, &error))
+  if (!g_PVRClients->RenameTimer(*this, m_strTitle, &error))
   {
     if (error == PVR_ERROR_NOT_IMPLEMENTED)
       return UpdateOnClient();
@@ -267,7 +272,7 @@ bool CPVRTimerInfoTag::RenameOnClient(const CStdString &strNewName)
   }
   else
   {
-    CPVRManager::Get()->TriggerTimersUpdate();
+    g_PVRManager.TriggerTimersUpdate();
   }
 
   return true;
@@ -330,7 +335,7 @@ void CPVRTimerInfoTag::UpdateEpgEvent(bool bClear /* = false */)
       return;
 
     /* try to get the channel */
-    CPVRChannel *channel = (CPVRChannel *) CPVRManager::GetChannelGroups()->GetByUniqueID(m_iClientChannelUid, m_iClientId);
+    CPVRChannel *channel = (CPVRChannel *) g_PVRChannelGroups->GetByUniqueID(m_iClientChannelUid, m_iClientId);
     if (!channel)
       return;
 
@@ -353,14 +358,14 @@ bool CPVRTimerInfoTag::UpdateOnClient()
 {
   UpdateEpgEvent();
   PVR_ERROR error;
-  if (!CPVRManager::GetClients()->UpdateTimer(*this, &error))
+  if (!g_PVRClients->UpdateTimer(*this, &error))
   {
     DisplayError(error);
     return false;
   }
   else
   {
-    CPVRManager::Get()->TriggerTimersUpdate();
+    g_PVRManager.TriggerTimersUpdate();
     return true;
   }
 }
@@ -395,7 +400,7 @@ void CPVRTimerInfoTag::SetEpgInfoTag(CPVREpgInfoTag *tag)
 
 int CPVRTimerInfoTag::ChannelNumber() const
 {
-  const CPVRChannel *channeltag = CPVRManager::GetChannelGroups()->GetByUniqueID(m_iClientChannelUid, m_iClientId);
+  const CPVRChannel *channeltag = g_PVRChannelGroups->GetByUniqueID(m_iClientChannelUid, m_iClientId);
   if (channeltag)
     return channeltag->ChannelNumber();
   else
@@ -404,7 +409,7 @@ int CPVRTimerInfoTag::ChannelNumber() const
 
 CStdString CPVRTimerInfoTag::ChannelName() const
 {
-  const CPVRChannel *channeltag = CPVRManager::GetChannelGroups()->GetByUniqueID(m_iClientChannelUid, m_iClientId);
+  const CPVRChannel *channeltag = g_PVRChannelGroups->GetByUniqueID(m_iClientChannelUid, m_iClientId);
   if (channeltag)
     return channeltag->ChannelName();
   else
@@ -459,7 +464,7 @@ CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CPVREpgInfoTag &tag)
   if (!iMarginStart)
     iMarginStart   = 5;  /* default to 5 minutes */
 
-  int iMarginStop  = g_guiSettings.GetInt("pvrrecord.marginstop");
+  int iMarginStop  = g_guiSettings.GetInt("pvrrecord.marginend");
   if (!iMarginStop)
     iMarginStop    = 10; /* default to 10 minutes */
 

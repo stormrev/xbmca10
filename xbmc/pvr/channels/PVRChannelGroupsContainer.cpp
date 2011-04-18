@@ -102,9 +102,9 @@ const CPVRChannelGroups *CPVRChannelGroupsContainer::Get(bool bRadio) const
   return bRadio ? m_groupsRadio : m_groupsTV;
 }
 
-const CPVRChannelGroup *CPVRChannelGroupsContainer::GetGroupAll(bool bRadio) const
+CPVRChannelGroupInternal *CPVRChannelGroupsContainer::GetGroupAll(bool bRadio) const
 {
-  const CPVRChannelGroup *group = NULL;
+  CPVRChannelGroupInternal *group = NULL;
   const CPVRChannelGroups *groups = Get(bRadio);
   if (groups)
     group = groups->GetGroupAll();
@@ -316,4 +316,15 @@ void CPVRChannelGroupsContainer::SearchMissingChannelIcons(void)
     channelgroupradio->SearchAndSetChannelIcons(true);
 
   CGUIDialogOK::ShowAndGetInput(19103,0,20177,0);
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetLastPlayedChannel(void) const
+{
+  const CPVRChannel *lastChannel = GetGroupAllTV()->GetLastPlayedChannel();
+
+  const CPVRChannel *lastRadioChannel = GetGroupAllRadio()->GetLastPlayedChannel();
+  if (!lastChannel || (lastRadioChannel && lastChannel->LastWatched() < lastRadioChannel->LastWatched()))
+    lastChannel = lastRadioChannel;
+
+  return lastChannel;
 }

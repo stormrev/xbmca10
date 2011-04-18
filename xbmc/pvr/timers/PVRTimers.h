@@ -87,14 +87,20 @@ public:
    * The timer that will be active next.
    * Returns false if there is none.
    */
-  const CPVRTimerInfoTag *GetNextActiveTimer(void);
+  bool GetNextActiveTimer(CPVRTimerInfoTag *tag);
 
   int GetActiveTimers(std::vector<CPVRTimerInfoTag *> *tags);
 
   /**
    * The amount of timers in this container.
    */
-  int GetNumTimers();
+  int GetNumTimers() const;
+
+  int GetNumActiveTimers(void) const;
+
+  int GetNumActiveRecordings(void) const;
+
+  bool GetTimerByIndex(unsigned int iIndex, CPVRTimerInfoTag *timer) const;
 
   /**
    * Get the directory for a path.
@@ -181,4 +187,5 @@ public:
   CPVRTimerInfoTag *GetMatch(const CEpgInfoTag *Epg);
   CPVRTimerInfoTag *GetMatch(const CFileItem *item);
   virtual void Notify(const Observable &obs, const CStdString& msg);
+  bool IsRecordingOnChannel(const CPVRChannel &channel) const;
 };

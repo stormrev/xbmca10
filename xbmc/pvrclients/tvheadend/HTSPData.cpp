@@ -193,7 +193,6 @@ PVR_ERROR cHTSPData::GetChannels(PVR_HANDLE handle, bool bRadio)
     tag.iEncryptionSystem = channel.caid;
     tag.strIconPath       = channel.icon.c_str();
     tag.bIsHidden         = false;
-    tag.bIsRecording      = false;
 
     PVR->TransferChannelEntry(handle, &tag);
   }
@@ -269,7 +268,7 @@ SRecordings cHTSPData::GetDVREntries(bool recorded, bool scheduled)
   {
     SRecording recording = it->second;
 
-    if ((recorded && (recording.state == ST_COMPLETED || recording.state == ST_ABORTED)) ||
+    if ((recorded && (recording.state == ST_COMPLETED || recording.state == ST_ABORTED || recording.state == ST_RECORDING)) ||
         (scheduled && (recording.state == ST_SCHEDULED || recording.state == ST_RECORDING)))
       recordings[recording.id] = recording;
   }

@@ -132,7 +132,7 @@ bool CGUIWindowPVRRecordings::OnClickButton(CGUIMessage &message)
   if (IsSelectedButton(message))
   {
     bReturn = true;
-    CPVRManager::Get()->TriggerRecordingsUpdate();
+    g_PVRManager.TriggerRecordingsUpdate();
   }
 
   return bReturn;
@@ -175,7 +175,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonDelete(CFileItem *item, CONTEXT_BUT
 
   if (button == CONTEXT_BUTTON_DELETE)
   {
-    bReturn = true;
+    bReturn = false;
 
     CGUIDialogYesNo* pDialog = (CGUIDialogYesNo*)g_windowManager.GetWindow(WINDOW_DIALOG_YES_NO);
     if (!pDialog)
@@ -189,10 +189,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonDelete(CFileItem *item, CONTEXT_BUT
     if (!pDialog->IsConfirmed())
       return bReturn;
 
-    if (CPVRManager::GetRecordings()->DeleteRecording(*item))
-    {
-      CPVRManager::Get()->TriggerRecordingsUpdate();
-    }
+    bReturn = g_PVRRecordings->DeleteRecording(*item);
   }
 
   return bReturn;
@@ -236,7 +233,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonRename(CFileItem *item, CONTEXT_BUT
     CStdString strNewName = recording->m_strTitle;
     if (CGUIDialogKeyboard::ShowAndGetInput(strNewName, g_localizeStrings.Get(19041), false))
     {
-      if (CPVRManager::GetRecordings()->RenameRecording(*item, strNewName))
+      if (g_PVRRecordings->RenameRecording(*item, strNewName))
         UpdateData();
     }
   }

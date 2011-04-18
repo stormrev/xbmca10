@@ -20,12 +20,10 @@
  *
  */
 
-#include "FileItem.h"
-#include "PVRDatabase.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
-#include "windows/GUIWindowPVRCommon.h"
 #include "utils/JobManager.h"
+#include "windows/GUIWindowPVRCommon.h"
 
 class CPVRClients;
 class CPVRChannelGroupsContainer;
@@ -35,8 +33,15 @@ class CPVRTimers;
 class CPVREpgContainer;
 class CPVRGUIInfo;
 class CGUIDialogBusy;
+class CPVRDatabase;
 
-#define INFO_TOGGLE_TIME 1500
+
+#define g_PVRManager       CPVRManager::Get()
+#define g_PVRChannelGroups g_PVRManager.ChannelGroups()
+#define g_PVREpg           g_PVRManager.EPG()
+#define g_PVRTimers        g_PVRManager.Timers()
+#define g_PVRRecordings    g_PVRManager.Recordings()
+#define g_PVRClients       g_PVRManager.Clients()
 
 class CPVRManager : public Observer, private CThread, public IJobCallback
 {
@@ -49,6 +54,11 @@ private:
   CPVRManager(void);
 
 public:
+  /*!
+   * @brief Process a message from an observable.
+   * @param obs The observable that sends the message.
+   * @param msg The message.
+   */
   void Notify(const Observable &obs, const CStdString& msg);
 
   /*!
@@ -60,45 +70,40 @@ public:
    * @brief Get the instance of the PVRManager.
    * @return The PVRManager instance.
    */
-  static CPVRManager *Get(void);
+  static CPVRManager &Get(void);
 
   /*!
    * @brief Get the channel groups container.
    * @return The groups container.
    */
-  static CPVRChannelGroupsContainer *GetChannelGroups(void) { return Get()->m_channelGroups; }
+  CPVRChannelGroupsContainer *ChannelGroups(void) const { return m_channelGroups; }
 
   /*!
    * @brief Get the EPG container.
    * @return The EPG container.
    */
-  static CPVREpgContainer *GetEpg(void) { return Get()->m_epg; }
+  CPVREpgContainer *EPG(void) const { return m_epg; }
 
   /*!
    * @brief Get the recordings container.
    * @return The recordings container.
    */
-  static CPVRRecordings *GetRecordings(void) { return Get()->m_recordings; }
+  CPVRRecordings *Recordings(void) const { return m_recordings; }
 
   /*!
    * @brief Get the timers container.
    * @return The timers container.
    */
-  static CPVRTimers *GetTimers(void) { return Get()->m_timers; }
+  CPVRTimers *Timers(void) const { return m_timers; }
 
   /*!
    * @brief Get the timers container.
    * @return The timers container.
    */
-  static CPVRClients *GetClients(void) { return Get()->m_addons; }
+  CPVRClients *Clients(void) const { return m_addons; }
 
   /*!
-   * @brief Clean up and destroy the PVRManager.
-   */
-  static void Destroy(void);
-
-  /*!
-   * @brief Start the PVRManager
+   * @brief Start the PVRManager, which loads all PVR data and starts some threads to update the PVR data.
    */
   void Start(void);
 
@@ -113,7 +118,7 @@ public:
    * @brief Get the TV database.
    * @return The TV database.
    */
-  CPVRDatabase *GetTVDatabase(void) { return &m_database; }
+  CPVRDatabase *GetTVDatabase(void) const { return m_database; }
 
   /*!
    * @brief Updates the recordings and the "now" and "next" timers.
@@ -125,7 +130,7 @@ public:
    * @param dwInfo The string to get.
    * @return The requested string or an empty one if it wasn't found.
    */
-  const char* TranslateCharInfo(DWORD dwInfo) const;
+  bool TranslateCharInfo(DWORD dwInfo, CStdString &strValue) const;
 
   /*!
    * @brief Get a GUIInfoManager integer.
@@ -156,26 +161,26 @@ public:
    * @brief Check if a TV channel, radio channel or recording is playing.
    * @return True if it's playing, false otherwise.
    */
-  bool IsPlaying(void);
+  bool IsPlaying(void) const;
 
   /*!
    * @return True if the thread is stopped, false otherwise.
    */
-  bool IsRunning(void) { return !m_bStop; }
+  bool IsRunning(void) const;
 
   /*!
    * @brief Return the channel that is currently playing.
    * @param channel The channel or NULL if none is playing.
    * @return True if a channel is playing, false otherwise.
    */
-  bool GetCurrentChannel(CPVRChannel *channel);
+  bool GetCurrentChannel(CPVRChannel *channel) const;
 
   /*!
    * @brief Return the EPG for the channel that is currently playing.
    * @param channel The EPG or NULL if no channel is playing.
    * @return The amount of results that was added or -1 if none.
    */
-  int GetCurrentEpg(CFileItemList *results);
+  int GetCurrentEpg(CFileItemList *results) const;
 
   /*!
    * @brief Check whether the PVRManager has fully started.
@@ -183,12 +188,43 @@ public:
    */
   bool IsStarted(void) const { return m_bLoaded; }
 
+  /*!
+   * @brief Switch to the given channel.
+   * @param channel The channel to switch to.
+   * @param bPreview True to show a preview, false otherwise.
+   * @return Trrue if the switch was successful, false otherwise.
+   */
   bool PerformChannelSwitch(const CPVRChannel &channel, bool bPreview);
 
-  bool IsRunningChannelScan(void);
+  /*!
+   * @return True if a channel scan is running.
+   */
+  bool IsRunningChannelScan(void) const;
+
+  /*!
+   * @brief Close an open PVR stream.
+   */
   void CloseStream(void);
+
+  /*!
+   * @brief Open a stream from the given channel.
+   * @param tag The channel to open.
+   * @return True if the stream was opened, false otherwise.
+   */
   bool OpenLiveStream(const CPVRChannel &tag);
+
+  /*!
+   * @brief Open a stream from the given recording.
+   * @param tag The recording to open.
+   * @return True if the stream was opened, false otherwise.
+   */
   bool OpenRecordedStream(const CPVRRecording &tag);
+
+  /*!
+   * @brief Start or stop recording on the channel that is currently being played.
+   * @param bOnOff True to start recording, false to stop.
+   * @return True if the recording was started or stopped successfully, false otherwise.
+   */
   bool StartRecordingOnPlayingChannel(bool bOnOff);
 
   /*!
@@ -251,10 +287,10 @@ public:
 
   /*!
    * @brief Switch to a channel given it's channel number.
-   * @param channel The channel number to switch to.
+   * @param iChannelNumber The channel number to switch to.
    * @return True if the channel was switched, false otherwise.
    */
-  bool ChannelSwitch(unsigned int channel);
+  bool ChannelSwitch(unsigned int iChannelNumber);
 
   /*!
    * @brief Switch to the next channel in this group.
@@ -295,12 +331,6 @@ public:
   bool StartPlayback(const CPVRChannel *channel, bool bPreview = false);
 
   /*!
-   * @brief Get the currently playing EPG tag and update it if needed.
-   * @return The currently playing EPG tag or NULL if there is none.
-   */
-  const CPVREpgInfoTag *GetPlayingTag(void) const;
-
-  /*!
    * @brief Convert a genre id and subid to a human readable name.
    * @param iID The genre ID.
    * @param iSubID The genre sub ID.
@@ -308,9 +338,21 @@ public:
    */
   static const CStdString &ConvertGenreIdToString(int iID, int iSubID);
 
+  /*!
+   * @brief Update the current playing file in the guiinfomanager and application.
+   */
   void UpdateCurrentFile(void);
 
+  /*!
+   * @brief Update the data in a pvr window if that window is currently visible.
+   * @param window The window to update.
+   */
   void UpdateWindow(PVRWindow window);
+
+  /*!
+   * @brief Check whether names are still correct after the language settings changed.
+   */
+  void LocalizationChanged(void);
 
 protected:
   /*!
@@ -318,10 +360,19 @@ protected:
    */
   virtual void Process(void);
 
+  /*!
+   * @brief Disable the pvrmanager if no clients are enabled or active.
+   * @return True if no clients are enabled, false otherwise.
+   */
   bool DisableIfNoClients(void);
 
 private:
 
+  /*!
+   * @brief Load at least one client and load all other PVR data after loading the client.
+   * If some clients failed to load here, the pvrmanager will retry to load them every second.
+   * @return If at least one client and all pvr data was loaded, false otherwise.
+   */
   bool Load(void);
 
   /*!
@@ -344,6 +395,10 @@ private:
    */
   void UpdateChannelGroups(void);
 
+  /*!
+   * @see CPVRGUIInfo
+   */
+  //!{
   const char *CharInfoNowRecordingTitle(void);
   const char *CharInfoNowRecordingChannel(void);
   const char *CharInfoNowRecordingDateTime(void);
@@ -353,6 +408,7 @@ private:
   const char *CharInfoNextTimer(void);
   const char *CharInfoPlayingDuration(void);
   const char *CharInfoPlayingTime(void);
+  //!}
 
   /*!
    * @brief Reset all properties.
@@ -402,12 +458,13 @@ private:
    */
   bool ContinueLastChannel(void);
 
-  void OnJobComplete(unsigned int jobID, bool success, CJob* job);
+  /*!
+   * @brief Show or hide the busy dialog.
+   * @param bShow True to show the dialog, false to hide it.
+   */
+  void ShowBusyDialog(bool bShow);
 
-  /** @name singleton instance */
-  //@{
-  static CPVRManager *            m_instance;                    /*!< singleton instance */
-  //@}
+  void OnJobComplete(unsigned int jobID, bool success, CJob* job);
 
   /** @name containers */
   //@{
@@ -419,33 +476,24 @@ private:
   CPVRGUIInfo *                   m_guiInfo;                     /*!< pointer to the guiinfo data */
   //@}
 
-  /** @name containers */
-  //@{
-  CCriticalSection                m_critSectionTriggers;
-  bool                            m_bRecordingsUpdating;
-  bool                            m_bTimersUpdating;
-  bool                            m_bChannelsUpdating;
-  bool                            m_bChannelGroupsUpdating;
-
-  /** @name General PVRManager data */
-  //@{
-  CFileItem *                     m_currentFile;
-  CPVRDatabase                    m_database;                    /*!< the database for all PVR related data */
-  CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class */
+  CCriticalSection                m_critSectionTriggers;         /*!< critical section for triggered updates */
+  bool                            m_bRecordingsUpdating;         /*!< true when recordings are being updated */
+  bool                            m_bTimersUpdating;             /*!< true when timers are being updated */
+  bool                            m_bChannelsUpdating;           /*!< true when channels are being updated */
+  bool                            m_bChannelGroupsUpdating;      /*!< true when channel groups are being updated */
+  CFileItem *                     m_currentFile;                 /*!< the PVR file that is currently playing */
+  CPVRDatabase *                  m_database;                    /*!< the database for all PVR related data */
+  CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
   bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
-  bool                            m_bLoaded;
-  CGUIDialogBusy *                m_loadingBusyDialog;
-  //@}
+  bool                            m_bLoaded;                     /*!< true if the pvrmanager has been loaded and can be used */
+  CGUIDialogBusy *                m_loadingBusyDialog;           /*!< busy dialog that is displayed while the pvrmanager is loading */
+  CPVRChannelGroup *              m_currentRadioGroup;           /*!< the currently selected radio channel group list */
+  CPVRChannelGroup *              m_currentTVGroup;              /*!< the currently selected TV channel group list */
 
-  /*--- Previous Channel data ---*/
   int                             m_PreviousChannel[2];
   int                             m_PreviousChannelIndex;
   int                             m_LastChannel;
   unsigned int                    m_LastChannelChanged;
-
-  /*--- Stream playback data ---*/
-  CPVRChannelGroup *              m_currentRadioGroup;        /* The current selected radio channel group list */
-  CPVRChannelGroup *              m_currentTVGroup;           /* The current selected TV channel group list */
 };
 
 class CPVRRecordingsUpdateJob : public CJob
@@ -487,4 +535,3 @@ public:
 
   virtual bool DoWork();
 };
-

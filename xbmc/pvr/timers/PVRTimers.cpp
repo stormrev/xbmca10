@@ -42,7 +42,7 @@ CPVRTimers::CPVRTimers(void)
 int CPVRTimers::Load()
 {
   Unload();
-  CPVRManager::GetEpg()->AddObserver(this);
+  g_PVREpg->AddObserver(this);
   Update();
 
   return size();
@@ -58,7 +58,7 @@ void CPVRTimers::Unload()
 
 int CPVRTimers::LoadFromClients(void)
 {
-  return CPVRManager::GetClients()->GetTimers(this);
+  return g_PVRClients->GetTimers(this);
 }
 
 struct sortByStartTime
@@ -198,10 +198,11 @@ bool CPVRTimers::UpdateEntries(CPVRTimers *timers)
 
     NotifyObservers("timers", false);
 
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_TIMERS);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_EPG);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_TV);
-    CPVRManager::Get()->UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
+    g_PVRManager.UpdateWindow(PVR_WINDOW_TIMERS);
+    g_PVRManager.UpdateWindow(PVR_WINDOW_EPG);
+    g_PVRManager.UpdateWindow(PVR_WINDOW_RECORDINGS);
+    g_PVRManager.UpdateWindow(PVR_WINDOW_CHANNELS_TV);
+    g_PVRManager.UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
   }
 
   return bChanged;
@@ -235,19 +236,25 @@ int CPVRTimers::GetTimers(CFileItemList* results)
   return size();
 }
 
-const CPVRTimerInfoTag *CPVRTimers::GetNextActiveTimer(void)
+bool CPVRTimers::GetNextActiveTimer(CPVRTimerInfoTag *tag)
 {
-  CPVRTimerInfoTag *tag = NULL;
+  bool bReturn(false);
+  bool bGotFirst(false);
   CSingleLock lock(m_critSection);
 
   for (unsigned int iTimerPtr = 0; iTimerPtr < size(); iTimerPtr++)
   {
     CPVRTimerInfoTag *current = at(iTimerPtr);
-    if (current->IsActive() && (tag == NULL || current->Compare(*tag) < 0))
-      tag = at(iTimerPtr);
+    if (current->IsActive() && !current->IsRecording() &&
+        (!bGotFirst || current->Compare(*tag) < 0))
+    {
+      *tag = *at(iTimerPtr);
+      bGotFirst = true;
+      bReturn = true;
+    }
   }
 
-  return tag;
+  return bReturn;
 }
 
 int CPVRTimers::GetActiveTimers(vector<CPVRTimerInfoTag *> *tags)
@@ -264,7 +271,49 @@ int CPVRTimers::GetActiveTimers(vector<CPVRTimerInfoTag *> *tags)
   return tags->size() - iInitialSize;
 }
 
-int CPVRTimers::GetNumTimers()
+int CPVRTimers::GetNumActiveTimers(void) const
+{
+  int iReturn(0);
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iTimerPtr = 0; iTimerPtr < size(); iTimerPtr++)
+  {
+    if (at(iTimerPtr)->IsActive())
+      ++iReturn;
+  }
+
+  return iReturn;
+}
+
+int CPVRTimers::GetNumActiveRecordings(void) const
+{
+  int iReturn(0);
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iTimerPtr = 0; iTimerPtr < size(); iTimerPtr++)
+  {
+    if (at(iTimerPtr)->IsActive() && at(iTimerPtr)->IsRecording())
+      ++iReturn;
+  }
+
+  return iReturn;
+}
+
+bool CPVRTimers::GetTimerByIndex(unsigned int iIndex, CPVRTimerInfoTag *timer) const
+{
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
+
+  if (iIndex < size())
+  {
+    *timer = *at(iIndex);
+    bReturn = true;
+  }
+
+  return bReturn;
+}
+
+int CPVRTimers::GetNumTimers() const
 {
   CSingleLock lock(m_critSection);
   return size();
@@ -349,8 +398,8 @@ CPVRTimerInfoTag *CPVRTimers::InstantTimer(CPVRChannel *channel, bool bStartTime
 {
   if (!channel)
   {
-    if (!CPVRManager::Get()->GetCurrentChannel(channel))
-      channel = (CPVRChannel *) CPVRManager::GetChannelGroups()->GetGroupAllTV()->GetFirstChannel();
+    if (!g_PVRManager.GetCurrentChannel(channel))
+      channel = (CPVRChannel *) g_PVRChannelGroups->GetGroupAllTV()->GetFirstChannel();
 
     /* no channels present */
     if (!channel)
@@ -401,13 +450,6 @@ CPVRTimerInfoTag *CPVRTimers::InstantTimer(CPVRChannel *channel, bool bStartTime
     delete newTimer;
     newTimer = NULL;
   }
-  else
-  {
-    CSingleLock lock(m_critSection);
-    push_back(newTimer);
-    if (bStartTimer)
-      channel->SetRecording(true);
-  }
 
   return newTimer;
 }
@@ -432,7 +474,7 @@ bool CPVRTimers::AddTimer(const CFileItem &item)
 
 bool CPVRTimers::AddTimer(CPVRTimerInfoTag &item)
 {
-  if (!CPVRManager::GetClients()->GetClientProperties(item.m_iClientId)->bSupportsTimers)
+  if (!g_PVRClients->GetClientProperties(item.m_iClientId)->bSupportsTimers)
   {
     CGUIDialogOK::ShowAndGetInput(19033,0,19215,0);
     return false;
@@ -522,6 +564,24 @@ CPVRTimerInfoTag *CPVRTimers::GetByClient(int iClientId, int iClientTimerId)
   return returnTag;
 }
 
+bool CPVRTimers::IsRecordingOnChannel(const CPVRChannel &channel) const
+{
+  bool bReturn(false);
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int ptr = 0; ptr < size(); ptr++)
+  {
+    CPVRTimerInfoTag *timer = at(ptr);
+
+    if (timer->IsRecording() && *timer->m_channel == channel)
+    {
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
+}
 
 CPVRTimerInfoTag *CPVRTimers::GetMatch(const CEpgInfoTag *Epg)
 {

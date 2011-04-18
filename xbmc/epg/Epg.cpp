@@ -151,17 +151,18 @@ void CEpg::Clear(void)
 
 void CEpg::Cleanup(void)
 {
-  Cleanup(CDateTime::GetCurrentDateTime().GetAsUTCDateTime());
+  CDateTime cleanupTime = CDateTime::GetCurrentDateTime().GetAsUTCDateTime() -
+      CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0);
+  Cleanup(cleanupTime);
 }
 
 void CEpg::Cleanup(const CDateTime &Time)
 {
   CSingleLock lock(m_critSection);
 
-  CDateTime firstDate = Time - CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0);
   CDateTime dummy; dummy.SetValid(false);
 
-  RemoveTagsBetween(dummy, firstDate);
+  RemoveTagsBetween(dummy, Time);
 }
 
 void CEpg::RemoveTagsBetween(const CDateTime &begin, const CDateTime &end, bool bRemoveFromDb /* = false */)
@@ -248,8 +249,21 @@ const CEpgInfoTag *CEpg::InfoTagNext(void) const
   CSingleLock lock(m_critSection);
 
   const CEpgInfoTag *nowTag = InfoTagNow();
+  if (nowTag != NULL)
+  {
+    return nowTag->GetNextEvent();
+  }
+  else if (size() >  0)
+  {
+    CDateTime now = CDateTime::GetCurrentDateTime();
+    for (unsigned int iTagPtr = 0; iTagPtr < size(); iTagPtr++)
+    {
+      if (at(iTagPtr)->StartAsLocalTime() > now)
+        return at(iTagPtr);
+    }
+  }
 
-  return nowTag ? nowTag->GetNextEvent() : NULL;
+  return NULL;
 }
 
 const CEpgInfoTag *CEpg::GetTag(int uniqueID, const CDateTime &StartTime) const
@@ -541,6 +555,9 @@ int CEpg::Get(CFileItemList *results) const
 
   for (unsigned int iTagPtr = 0; iTagPtr < size(); iTagPtr++)
   {
+    if (at(iTagPtr)->EndAsLocalTime() < CDateTime::GetCurrentDateTime() - CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0))
+      continue;
+
     CFileItemPtr entry(new CFileItem(*at(iTagPtr)));
     entry->SetLabel2(at(iTagPtr)->StartAsLocalTime().GetAsLocalizedDateTime(false, false));
     results->Add(entry);

@@ -377,7 +377,7 @@ bool cHTSPSession::GetEvent(SEvent& event, uint32_t id)
 bool cHTSPSession::ParseEvent(htsmsg_t* msg, uint32_t id, SEvent &event)
 {
   uint32_t start, stop, next, chan_id, content;
-  const char *title, *desc;
+  const char *title, *desc, *ext_desc;
   if(         htsmsg_get_u32(msg, "start", &start)
   ||          htsmsg_get_u32(msg, "stop" , &stop)
   || (title = htsmsg_get_str(msg, "title")) == NULL)
@@ -393,9 +393,21 @@ bool cHTSPSession::ParseEvent(htsmsg_t* msg, uint32_t id, SEvent &event)
   event.stop  = stop;
   event.title = title;
 
-  if((desc = htsmsg_get_str(msg, "ext_text")) ||
-     (desc = htsmsg_get_str(msg, "description")))
+  desc     = htsmsg_get_str(msg, "description");
+  ext_desc = htsmsg_get_str(msg, "ext_text");
+
+  if (desc && ext_desc)
+  {
+    char buf[strlen(desc) + strlen(ext_desc)];
+    sprintf(buf, "%s%s", desc, ext_desc);
+    event.descs = buf;
+  }
+  else if (desc)
     event.descs = desc;
+  else if (ext_desc)
+    event.descs = ext_desc;
+  else
+    event.descs = "";
 
   if(htsmsg_get_u32(msg, "nextEventId", &next))
     event.next = 0;
@@ -710,13 +722,13 @@ void cHTSPSession::ParseDVREntryUpdate(htsmsg_t* msg, SRecordings &recordings, b
   if (bNotify)
   {
     if (recording.state == ST_ABORTED)
-      XBMC->QueueNotification(QUEUE_INFO, "recording aborted: '%s'", recording.title.c_str());
+      XBMC->QueueNotification(QUEUE_INFO, "%s: '%s'", XBMC->GetLocalizedString(19224), recording.title.c_str());
     else if (recording.state == ST_SCHEDULED)
-      XBMC->QueueNotification(QUEUE_INFO, "recording scheduled: '%s'", recording.title.c_str());
+      XBMC->QueueNotification(QUEUE_INFO, "%s: '%s'", XBMC->GetLocalizedString(19225), recording.title.c_str());
     else if (recording.state == ST_RECORDING)
-          XBMC->QueueNotification(QUEUE_INFO, "recording started: '%s'", recording.title.c_str());
+      XBMC->QueueNotification(QUEUE_INFO, "%s: '%s'", XBMC->GetLocalizedString(19226), recording.title.c_str());
     else if (recording.state == ST_COMPLETED)
-      XBMC->QueueNotification(QUEUE_INFO, "recording completed: '%s'", recording.title.c_str());
+      XBMC->QueueNotification(QUEUE_INFO, "%s: '%s'", XBMC->GetLocalizedString(19227), recording.title.c_str());
   }
 
   XBMC->Log(LOG_DEBUG, "%s - id:%u, state:'%s', title:'%s', description: '%s'"
@@ -742,7 +754,7 @@ void cHTSPSession::ParseDVREntryDelete(htsmsg_t* msg, SRecordings &recordings, b
   XBMC->Log(LOG_DEBUG, "%s - Recording %i was deleted", __FUNCTION__, id);
 
   if (bNotify)
-    XBMC->QueueNotification(QUEUE_INFO, "recording deleted: '%s'", recordings[id].title.c_str());
+    XBMC->QueueNotification(QUEUE_INFO, "%s: '%s'", XBMC->GetLocalizedString(19228), recordings[id].title.c_str());
 
   recordings.erase(id);
 

@@ -24,6 +24,7 @@
 #include "XBDateTime.h"
 #include "FileItem.h"
 #include "addons/include/xbmc_pvr_types.h"
+#include "utils/JobManager.h"
 #include "utils/Observer.h"
 #include "threads/CriticalSection.h"
 
@@ -32,15 +33,18 @@ class CPVRChannelGroupInternal;
 class CPVRDatabase;
 class CPVREpg;
 class CPVREpgContainer;
+class CPVRChannelIconCacheJob;
 
 /** PVR Channel class */
 
-class CPVRChannel : public Observable
+class CPVRChannel : public Observable, public IJobCallback
 {
   friend class CPVRChannelGroup;
   friend class CPVRChannelGroupInternal;
   friend class CPVRDatabase;
   friend class CPVREpgContainer;
+  friend class CPVREpg;
+  friend class CPVRChannelIconCacheJob;
 
 private:
   /*! @name XBMC related channel data
@@ -49,7 +53,6 @@ private:
   int              m_iChannelId;              /*!< the identifier given to this channel by the TV database */
   bool             m_bIsRadio;                /*!< true if this channel is a radio channel, false if not */
   bool             m_bIsHidden;               /*!< true if this channel is hidden, false if not */
-  bool             m_bClientIsRecording;      /*!< true if a recording is currently running on this channel, false if not */
   CStdString       m_strIconPath;             /*!< the path to the icon for this channel */
   CStdString       m_strChannelName;          /*!< the name for this channel used by XBMC */
   bool             m_bIsVirtual;              /*!< true if this channel is marked as virtual, false if not */
@@ -80,6 +83,7 @@ private:
   CStdString       m_strClientEncryptionName; /*!< the name of the encryption system used by this channel */
   //@}
 
+  bool             m_bIsCachingIcon;
   CCriticalSection m_critSection;
 
 public:
@@ -163,14 +167,7 @@ public:
    * @brief True if a recording is currently running on this channel. False if not.
    * @return True if a recording is currently running on this channel. False if not.
    */
-  bool IsRecording(void) const { return m_bClientIsRecording; }
-
-  /*!
-   * @brief Set to true if a recording is currently running on this channel. Set to false if not.
-   * @param bClientIsRecording The new setting
-   * @return True if the something changed, false otherwise.
-   */
-  bool SetRecording(bool bClientIsRecording);
+  bool IsRecording(void) const;
 
   /*!
    * @brief The path to the icon for this channel.
@@ -369,6 +366,7 @@ private:
 
   void SetCachedChannelNumber(unsigned int iChannelNumber);
   bool CacheIcon(void);
+  bool CheckCachedIcon(void);
 
 public:
   /*!
@@ -494,4 +492,19 @@ public:
   bool SetEPGScraper(const CStdString &strScraper, bool bSaveInDb = false);
 
   //@}
+
+  void OnJobComplete(unsigned int jobID, bool success, CJob* job);
+};
+
+class CPVRChannelIconCacheJob : public CJob
+{
+public:
+  CPVRChannelIconCacheJob(CPVRChannel *channel) { m_channel = channel; }
+  virtual ~CPVRChannelIconCacheJob() {}
+  virtual const char *GetType() const { return "pvr-channel-icon-update"; }
+
+  virtual bool DoWork();
+
+private:
+  CPVRChannel *m_channel;
 };
