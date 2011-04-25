@@ -34,15 +34,10 @@
 #include "EpgInfoTag.h"
 #include "EpgSearchFilter.h"
 
-#include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
-
 using namespace std;
+using namespace EPG;
 
-CEpgContainer g_EpgContainer;
-
-CEpgContainer::CEpgContainer(void) :
-    Observable()
+CEpgContainer::CEpgContainer(void)
 {
   m_bStop = true;
   Clear(false);
@@ -51,6 +46,12 @@ CEpgContainer::CEpgContainer(void) :
 CEpgContainer::~CEpgContainer(void)
 {
   Clear();
+}
+
+CEpgContainer &CEpgContainer::Get(void)
+{
+  static CEpgContainer epgInstance;
+  return epgInstance;
 }
 
 void CEpgContainer::Unload(void)
@@ -143,7 +144,7 @@ void CEpgContainer::Process(void)
   if (m_database.Open())
   {
     m_database.DeleteOldEpgEntries();
-    m_database.Get(this);
+    m_database.Get(*this);
     m_database.Close();
   }
 
@@ -280,7 +281,7 @@ bool CEpgContainer::DeleteEpg(const CEpg &epg, bool bDeleteFromDatabase /* = fal
 
   for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
   {
-    if (at(iEpgPtr)->m_iEpgID == epg.m_iEpgID)
+    if (at(iEpgPtr)->EpgID() == epg.EpgID())
     {
       if (bDeleteFromDatabase && m_database.Open())
       {
@@ -325,7 +326,7 @@ bool CEpgContainer::UpdateSingleTable(CEpg *epg, const time_t start, const time_
 
 bool CEpgContainer::InterruptUpdate(void) const
 {
-  return (m_bStop || (g_PVRManager.IsStarted() && g_PVRClients->IsPlaying()));;
+  return m_bStop;
 }
 
 bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)

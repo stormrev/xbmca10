@@ -796,6 +796,7 @@ void CGUISettings::Initialize()
   CSettingsCategory* pvr = AddCategory(8, "pvrmanager", 128);
   AddBool(pvr, "pvrmanager.enabled", 449, false);
   AddBool(pvr, "pvrmanager.syncchannelgroups", 19221, true);
+  AddBool(pvr, "pvrmanager.backendchannelorder", 19231, false);
   AddString(pvr, "pvrmanager.channelmanager", 19199, "", BUTTON_CONTROL_STANDARD);
   AddString(pvr, "pvrmanager.channelscan", 19117, "", BUTTON_CONTROL_STANDARD);
   AddString(pvr, "pvrmanager.resetdb", 19185, "", BUTTON_CONTROL_STANDARD);
@@ -810,12 +811,14 @@ void CGUISettings::Initialize()
   AddString(pvrm, "pvrmenu.searchicons", 19167, "", BUTTON_CONTROL_STANDARD);
   AddSeparator(pvrm, "pvrmenu.sep2");
   AddInt(pvrm, "pvrmenu.defaultguideview", 19065, GUIDE_VIEW_NOW, GUIDE_VIEW_CHANNEL, 1, GUIDE_VIEW_TIMELINE, SPIN_CONTROL_TEXT);
+  AddBool(pvrm, "pvrmenu.closechannelosdonswitch", 19229, false);
 
   CSettingsCategory* pvre = AddCategory(8, "epg", 19069);
   AddInt(pvre, "epg.daystodisplay", 19182, 2, 1, 1, 14, SPIN_CONTROL_INT_PLUS, MASK_DAYS);
   AddInt(pvre, "epg.epgupdate", 19071, 120, 15, 15, 480, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddBool(pvre, "epg.ignoredbforclient", 19072, false);
   AddString(pvre, "epg.resetepg", 19187, "", BUTTON_CONTROL_STANDARD);
+  AddBool(pvre, "epg.preventupdateswhileplayingtv", 19230, false);
 
   CSettingsCategory* pvrp = AddCategory(8, "pvrplayback", 19177);
   AddBool(pvrp, "pvrplayback.switchautoclose", 19168, true);
@@ -883,8 +886,6 @@ void CGUISettings::AddBool(CSettingsCategory* cat, const char *strSetting, int i
   CSettingBool* pSetting = new CSettingBool(iOrder, CStdString(strSetting).ToLower(), iLabel, bData, iControlType);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 bool CGUISettings::GetBool(const char *strSetting) const
 {
@@ -912,7 +913,7 @@ void CGUISettings::SetBool(const char *strSetting, bool bSetting)
   { // old category
     ((CSettingBool*)(*it).second)->SetData(bSetting);
 
-    SetChangedAndNotify();
+    SetChanged();
 
     return ;
   }
@@ -928,7 +929,7 @@ void CGUISettings::ToggleBool(const char *strSetting)
   { // old category
     ((CSettingBool*)(*it).second)->SetData(!((CSettingBool *)(*it).second)->GetData());
 
-    SetChangedAndNotify();
+    SetChanged();
 
     return ;
   }
@@ -942,8 +943,6 @@ void CGUISettings::AddFloat(CSettingsCategory* cat, const char *strSetting, int 
   CSettingFloat* pSetting = new CSettingFloat(iOrder, CStdString(strSetting).ToLower(), iLabel, fData, fMin, fStep, fMax, iControlType);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 float CGUISettings::GetFloat(const char *strSetting) const
@@ -968,7 +967,7 @@ void CGUISettings::SetFloat(const char *strSetting, float fSetting)
   {
     ((CSettingFloat *)(*it).second)->SetData(fSetting);
 
-    SetChangedAndNotify();
+    SetChanged();
 
     return ;
   }
@@ -994,8 +993,6 @@ void CGUISettings::AddInt(CSettingsCategory* cat, const char *strSetting, int iL
   CSettingInt* pSetting = new CSettingInt(iOrder, CStdString(strSetting).ToLower(), iLabel, iData, iMin, iStep, iMax, iControlType, strFormat);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 void CGUISettings::AddInt(CSettingsCategory* cat, const char *strSetting, int iLabel, int iData, int iMin, int iStep, int iMax, int iControlType, int iFormat, int iLabelMin/*=-1*/)
@@ -1004,8 +1001,6 @@ void CGUISettings::AddInt(CSettingsCategory* cat, const char *strSetting, int iL
   CSettingInt* pSetting = new CSettingInt(iOrder, CStdString(strSetting).ToLower(), iLabel, iData, iMin, iStep, iMax, iControlType, iFormat, iLabelMin);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 void CGUISettings::AddInt(CSettingsCategory* cat, const char *strSetting,
@@ -1016,8 +1011,6 @@ void CGUISettings::AddInt(CSettingsCategory* cat, const char *strSetting,
   CSettingInt* pSetting = new CSettingInt(iOrder, CStdString(strSetting).ToLower(), iLabel, iData, entries, iControlType);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 void CGUISettings::AddHex(CSettingsCategory* cat, const char *strSetting, int iLabel, int iData, int iMin, int iStep, int iMax, int iControlType, const char *strFormat)
@@ -1026,8 +1019,6 @@ void CGUISettings::AddHex(CSettingsCategory* cat, const char *strSetting, int iL
   CSettingHex* pSetting = new CSettingHex(iOrder, CStdString(strSetting).ToLower(), iLabel, iData, iMin, iStep, iMax, iControlType, strFormat);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 int CGUISettings::GetInt(const char *strSetting) const
@@ -1053,7 +1044,7 @@ void CGUISettings::SetInt(const char *strSetting, int iSetting)
   {
     ((CSettingInt *)(*it).second)->SetData(iSetting);
 
-    SetChangedAndNotify();
+    SetChanged();
 
     return ;
   }
@@ -1067,8 +1058,6 @@ void CGUISettings::AddString(CSettingsCategory* cat, const char *strSetting, int
   CSettingString* pSetting = new CSettingString(iOrder, CStdString(strSetting).ToLower(), iLabel, strData, iControlType, bAllowEmpty, iHeadingString);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 void CGUISettings::AddPath(CSettingsCategory* cat, const char *strSetting, int iLabel, const char *strData, int iControlType, bool bAllowEmpty, int iHeadingString)
@@ -1077,8 +1066,6 @@ void CGUISettings::AddPath(CSettingsCategory* cat, const char *strSetting, int i
   CSettingPath* pSetting = new CSettingPath(iOrder, CStdString(strSetting).ToLower(), iLabel, strData, iControlType, bAllowEmpty, iHeadingString);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 void CGUISettings::AddDefaultAddon(CSettingsCategory* cat, const char *strSetting, int iLabel, const char *strData, const TYPE type)
@@ -1087,8 +1074,6 @@ void CGUISettings::AddDefaultAddon(CSettingsCategory* cat, const char *strSettin
   CSettingAddon* pSetting = new CSettingAddon(iOrder, CStdString(strSetting).ToLower(), iLabel, strData, type);
   if (!pSetting) return ;
   settingsMap.insert(pair<CStdString, CSetting*>(CStdString(strSetting).ToLower(), pSetting));
-
-  SetChangedAndNotify();
 }
 
 const CStdString &CGUISettings::GetString(const char *strSetting, bool bPrompt) const
@@ -1133,7 +1118,7 @@ void CGUISettings::SetString(const char *strSetting, const char *strData)
   {
     ((CSettingString *)(*it).second)->SetData(strData);
 
-    SetChangedAndNotify();
+    SetChanged();
 
     return ;
   }
@@ -1266,7 +1251,7 @@ void CGUISettings::LoadFromXML(TiXmlElement *pRootElement, mapIter &it, bool adv
     }
   }
 
-  SetChangedAndNotify();
+  SetChanged();
 }
 
 void CGUISettings::SaveXML(TiXmlNode *pRootNode)
@@ -1304,7 +1289,7 @@ void CGUISettings::SaveXML(TiXmlNode *pRootNode)
     }
   }
 
-  SetChangedAndNotify();
+  SetChanged();
 }
 
 void CGUISettings::Clear()
@@ -1317,13 +1302,6 @@ void CGUISettings::Clear()
   settingsGroups.clear();
 
   SetChanged();
-  NotifyObservers("settings", true);
-}
-
-void CGUISettings::SetChangedAndNotify(void)
-{
-  SetChanged();
-  NotifyObservers("settings", true);
 }
 
 float square_error(float x, float y)
@@ -1391,5 +1369,5 @@ void CGUISettings::SetResolution(RESOLUTION res)
   SetString("videoscreen.screenmode", mode);
   m_LookAndFeelResolution = res;
 
-  SetChangedAndNotify();
+  SetChanged();
 }

@@ -30,6 +30,7 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 using namespace std;
+using namespace PVR;
 
 #define CONTROL_TMR_ACTIVE              20
 #define CONTROL_TMR_CHNAME_TV           21
@@ -264,7 +265,7 @@ void CGUIDialogPVRTimerSettings::OnSettingChanged(SettingInfo &setting)
   }
   else if (setting.id == CONTROL_TMR_CHNAME_TV || setting.id == CONTROL_TMR_CHNAME_RADIO)
   {
-    const CPVRChannel* channeltag = ((CPVRChannelGroup *) g_PVRChannelGroups->GetGroupAll(tag->m_bIsRadio))->GetByChannelNumber(tag->m_iChannelNumber);
+    const CPVRChannel* channeltag = g_PVRChannelGroups->GetGroupAll(tag->m_bIsRadio)->GetByChannelNumber(tag->m_iChannelNumber);
 
     if (channeltag)
     {

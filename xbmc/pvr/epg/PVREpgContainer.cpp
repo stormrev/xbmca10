@@ -27,11 +27,14 @@
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/windows/GUIWindowPVR.h"
 #include "guilib/GUIWindowManager.h"
+#include "settings/GUISettings.h"
 #include "utils/log.h"
 
 using namespace std;
+using namespace PVR;
+using namespace EPG;
 
-void CPVREpgContainer::Clear(bool bClearDb /* = false */)
+void PVR::CPVREpgContainer::Clear(bool bClearDb /* = false */)
 {
   CSingleLock lock(m_critSection);
   // XXX stop the timers from being updated while clearing tags
@@ -43,7 +46,7 @@ void CPVREpgContainer::Clear(bool bClearDb /* = false */)
   CEpgContainer::Clear(bClearDb);
 }
 
-bool CPVREpgContainer::CreateChannelEpgs(void)
+bool PVR::CPVREpgContainer::CreateChannelEpgs(void)
 {
   for (int radio = 0; radio <= 1; radio++)
   {
@@ -56,9 +59,8 @@ bool CPVREpgContainer::CreateChannelEpgs(void)
         channel->GetEPG();
       else
       {
-        channel->m_EPG     = (CPVREpg *) epg;
-        epg->m_Channel     = channel;
-        epg->m_bHasChannel = true;
+        channel->m_EPG = (CPVREpg *) epg;
+        epg->SetChannel(channel);
       }
     }
   }
@@ -66,7 +68,7 @@ bool CPVREpgContainer::CreateChannelEpgs(void)
   return true;
 }
 
-int CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false */)
+int PVR::CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false */)
 {
   int iInitialSize = results->Size();
   const CPVRChannelGroup *group = g_PVRChannelGroups->GetGroupAll(bRadio);
@@ -86,12 +88,12 @@ int CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false *
   return results->Size() - iInitialSize;
 }
 
-bool CPVREpgContainer::AutoCreateTablesHook(void)
+bool PVR::CPVREpgContainer::AutoCreateTablesHook(void)
 {
   return CreateChannelEpgs();
 }
 
-CEpg* CPVREpgContainer::CreateEpg(int iEpgId)
+CEpg* PVR::CPVREpgContainer::CreateEpg(int iEpgId)
 {
   CPVRChannel *channel = (CPVRChannel *) g_PVRChannelGroups->GetChannelById(iEpgId);
   if (channel)
@@ -106,19 +108,19 @@ CEpg* CPVREpgContainer::CreateEpg(int iEpgId)
   }
 }
 
-const CDateTime CPVREpgContainer::GetFirstEPGDate(bool bRadio /* = false */)
+const CDateTime PVR::CPVREpgContainer::GetFirstEPGDate(bool bRadio /* = false */)
 {
   // TODO should use two separate containers, one for radio, one for tv
   return CEpgContainer::GetFirstEPGDate();
 }
 
-const CDateTime CPVREpgContainer::GetLastEPGDate(bool bRadio /* = false */)
+const CDateTime PVR::CPVREpgContainer::GetLastEPGDate(bool bRadio /* = false */)
 {
   // TODO should use two separate containers, one for radio, one for tv
   return CEpgContainer::GetLastEPGDate();
 }
 
-int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFilter &filter)
+int PVR::CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFilter &filter)
 {
   CEpgContainer::GetEPGSearch(results, filter);
 
@@ -172,7 +174,7 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
   return results->Size();
 }
 
-int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
+int PVR::CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
 {
   CPVRChannelGroup *channels = g_PVRChannelGroups->GetGroupAll(bRadio);
   CSingleLock lock(m_critSection);
@@ -199,7 +201,7 @@ int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
   return results->Size() - iInitialSize;
 }
 
-int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
+int PVR::CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
 {
   CPVRChannelGroup *channels = g_PVRChannelGroups->GetGroupAll(bRadio);
   CSingleLock lock(m_critSection);
@@ -226,7 +228,7 @@ int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
   return results->Size() - iInitialSize;
 }
 
-bool CPVREpgContainer::UpdateEPG(bool bShowProgress /* = false */)
+bool PVR::CPVREpgContainer::UpdateEPG(bool bShowProgress /* = false */)
 {
   bool bReturn = CEpgContainer::UpdateEPG(bShowProgress);
 
@@ -238,4 +240,12 @@ bool CPVREpgContainer::UpdateEPG(bool bShowProgress /* = false */)
   }
 
   return bReturn;
+}
+
+bool PVR::CPVREpgContainer::InterruptUpdate(void) const
+{
+  return (CEpgContainer::InterruptUpdate() ||
+      (g_guiSettings.GetBool("epg.preventupdateswhileplayingtv") &&
+       g_PVRManager.IsStarted() &&
+       g_PVRManager.IsPlaying()));
 }

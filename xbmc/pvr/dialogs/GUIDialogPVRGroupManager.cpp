@@ -32,6 +32,7 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 using namespace std;
+using namespace PVR;
 
 #define CONTROL_LIST_CHANNELS_LEFT    11
 #define CONTROL_LIST_CHANNELS_RIGHT   12
@@ -62,7 +63,7 @@ CGUIDialogPVRGroupManager::~CGUIDialogPVRGroupManager()
 
 bool CGUIDialogPVRGroupManager::PersistChanges(void)
 {
-  return ((CPVRChannelGroups *) g_PVRChannelGroups->Get(m_bIsRadio))->PersistAll();
+  return g_PVRChannelGroups->Get(m_bIsRadio)->PersistAll();
 }
 
 bool CGUIDialogPVRGroupManager::CancelChanges(void)
