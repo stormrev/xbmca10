@@ -124,19 +124,6 @@ extern "C" {
   } PVR_PROPERTIES;
 
   /*!
-   * @brief PVR add-on event codes, sent via PVRManager callback.
-   */
-  typedef enum
-  {
-    PVR_EVENT_UNKNOWN               = 0,
-    PVR_EVENT_CLOSE                 = 1,
-    PVR_EVENT_RECORDINGS_CHANGE     = 2,
-    PVR_EVENT_CHANNELS_CHANGE       = 3,
-    PVR_EVENT_TIMERS_CHANGE         = 4,
-    PVR_EVENT_CHANNEL_GROUPS_CHANGE = 5
-  } PVR_EVENT;
-
-  /*!
    * @brief PVR add-on capabilities. All capabilities are set to "false" as default.
    */
   typedef struct PVR_ADDON_CAPABILITIES
@@ -300,7 +287,7 @@ extern "C" {
     const char *  strPlot;              /*!< @brief (optional) plot */
     const char *  strChannelName;       /*!< @brief (optional) channel name */
     time_t        recordingTime;        /*!< @brief (optional) start time of the recording */
-    int           iDuration;            /*!< @brief (optional) duration of the recording */
+    int           iDuration;            /*!< @brief (optional) duration of the recording in seconds */
     int           iPriority;            /*!< @brief (optional) priority of this recording (from 0 - 100) */
     int           iLifetime;            /*!< @brief (optional) life time in days of this recording */
     int           iGenreType;           /*!< @brief (optional) genre type */

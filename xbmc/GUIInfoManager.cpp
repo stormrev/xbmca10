@@ -257,9 +257,11 @@ int CGUIInfoManager::TranslateSingleString(const CStdString &strCondition)
     else if (strTest.Equals("pvr.nowrecordingtitle")) ret = PVR_NOW_RECORDING_TITLE;
     else if (strTest.Equals("pvr.nowrecordingdatetime")) ret = PVR_NOW_RECORDING_DATETIME;
     else if (strTest.Equals("pvr.nowrecordingchannel")) ret = PVR_NOW_RECORDING_CHANNEL;
+    else if (strTest.Equals("pvr.nowrecordingchannelicon")) ret = PVR_NOW_RECORDING_CHAN_ICO;
     else if (strTest.Equals("pvr.nextrecordingtitle")) ret = PVR_NEXT_RECORDING_TITLE;
     else if (strTest.Equals("pvr.nextrecordingdatetime")) ret = PVR_NEXT_RECORDING_DATETIME;
     else if (strTest.Equals("pvr.nextrecordingchannel")) ret = PVR_NEXT_RECORDING_CHANNEL;
+    else if (strTest.Equals("pvr.nextrecordingchannelicon")) ret = PVR_NEXT_RECORDING_CHAN_ICO;
     else if (strTest.Equals("pvr.backendname")) ret = PVR_BACKEND_NAME;
     else if (strTest.Equals("pvr.backendversion")) ret = PVR_BACKEND_VERSION;
     else if (strTest.Equals("pvr.backendhost")) ret = PVR_BACKEND_HOST;
@@ -1124,9 +1126,11 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow)
   switch (info)
   {
   case PVR_NOW_RECORDING_CHANNEL:
+  case PVR_NOW_RECORDING_CHAN_ICO:
   case PVR_NOW_RECORDING_DATETIME:
   case PVR_NOW_RECORDING_TITLE:
   case PVR_NEXT_RECORDING_CHANNEL:
+  case PVR_NEXT_RECORDING_CHAN_ICO:
   case PVR_NEXT_RECORDING_DATETIME:
   case PVR_NEXT_RECORDING_TITLE:
   case PVR_BACKEND_NAME:
@@ -3578,7 +3582,8 @@ void CGUIInfoManager::SetCurrentMovie(CFileItem &item)
   CLog::Log(LOGDEBUG,"CGUIInfoManager::SetCurrentMovie(%s)",item.m_strPath.c_str());
   *m_currentFile = item;
 
-  if (!m_currentFile->HasPVRChannelInfoTag() && (!m_currentFile->HasVideoInfoTag() || m_currentFile->GetVideoInfoTag()->IsEmpty()))
+  /* also call GetMovieInfo() when a VideoInfoTag is already present or additional info won't be present in the tag */
+  if (!m_currentFile->HasPVRChannelInfoTag())
   {
     CVideoDatabase dbs;
     dbs.Open();

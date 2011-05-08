@@ -44,7 +44,8 @@ struct sortEPGbyDate
   }
 };
 
-CEpg::CEpg(int iEpgID, const CStdString &strName /* = "" */, const CStdString &strScraperName /* = "" */) :
+CEpg::CEpg(int iEpgID, const CStdString &strName /* = "" */, const CStdString &strScraperName /* = "" */, bool bLoadedFromDb /* = false */) :
+    m_bChanged(!bLoadedFromDb),
     m_bInhibitSorting(false),
     m_iEpgID(iEpgID),
     m_strName(strName),
@@ -64,6 +65,28 @@ CEpg::~CEpg(void)
 
 /** @name Public methods */
 //@{
+
+void CEpg::SetName(const CStdString &strName)
+{
+  CSingleLock lock(m_critSection);
+
+  if (!m_strName.Equals(strName))
+  {
+    m_bChanged = true;
+    m_strName = strName;
+  }
+}
+
+void CEpg::SetScraperName(const CStdString &strScraperName)
+{
+  CSingleLock lock(m_critSection);
+
+  if (!m_strScraperName.Equals(strScraperName))
+  {
+    m_bChanged = true;
+    m_strScraperName = strScraperName;
+  }
+}
 
 bool CEpg::HasValidEntries(void) const
 {
@@ -215,6 +238,8 @@ void CEpg::RemoveTagsBetween(time_t start, time_t end, bool bRemoveFromDb /* = f
     }
   }
 
+  Sort();
+
   if (bRemoveFromDb)
   {
     CEpgDatabase *database = g_EpgContainer.GetDatabase();
@@ -268,6 +293,19 @@ const CEpgInfoTag *CEpg::InfoTagNext(void) const
   }
 
   return NULL;
+}
+
+void CEpg::CheckPlayingEvent(void)
+{
+  CSingleLock lock(m_critSection);
+  const CEpgInfoTag *currentEvent = m_nowActive;
+  const CEpgInfoTag *updatedEvent = InfoTagNow();
+
+  if (!currentEvent || !updatedEvent || *currentEvent != *updatedEvent)
+  {
+    SetChanged();
+    NotifyObservers("epg");
+  }
 }
 
 const CEpgInfoTag *CEpg::GetTag(int uniqueID, const CDateTime &StartTime) const
@@ -482,6 +520,8 @@ bool CEpg::UpdateEntries(const CEpg &epg, bool bStoreInDb /* = true */)
       database->PersistLastEpgScanTime(m_iEpgID, true);
       database->Persist(*this, true);
       PersistTags(true);
+
+      lock.Leave();
       bReturn = database->CommitInsertQueries();
       database->Close();
     }
@@ -604,18 +644,20 @@ bool CEpg::Persist(bool bPersistTags /* = false */, bool bQueueWrite /* = false 
   }
 
   CSingleLock lock(m_critSection);
-
-  int iId = database->Persist(*this, bQueueWrite);
-  if (iId >= 0)
+  if (m_iEpgID <= 0 || m_bChanged)
   {
+    int iId = database->Persist(*this, bQueueWrite && m_iEpgID > 0);
     if (iId > 0)
+    {
       m_iEpgID = iId;
-
-    if (bPersistTags)
-      bReturn = PersistTags(bQueueWrite);
-    else
-      bReturn = true;
+      m_bChanged = false;
+    }
   }
+
+  if (bPersistTags)
+    bReturn = PersistTags(bQueueWrite);
+  else
+    bReturn = true;
 
   database->Close();
 

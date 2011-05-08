@@ -23,6 +23,7 @@
 
 #include "FileItem.h"
 #include "PVRChannel.h"
+#include "utils/JobManager.h"
 
 namespace PVR
 {
@@ -40,7 +41,10 @@ namespace PVR
   /** A group of channels */
 
   class CPVRChannelGroup : private std::vector<PVRChannelGroupMember>,
-                           private Observer
+                           private Observer,
+                           public Observable,
+                           public IJobCallback
+
   {
     friend class CPVRChannelGroups;
     friend class CPVRChannelGroupInternal;
@@ -111,11 +115,6 @@ namespace PVR
      * @return True if something changed, false otherwise.
      */
     bool Renumber(void);
-
-    /*!
-     * @return Cache all channel icons in this group if guisetting "pvrmenu.iconpath" is set.
-     */
-    void CacheIcons(void);
 
   public:
     /*!
@@ -383,5 +382,20 @@ namespace PVR
     virtual bool HasChanges(void) const;
 
     //@}
+
+    void OnJobComplete(unsigned int jobID, bool success, CJob* job) {}
+  };
+
+  class CPVRPersistGroupJob : public CJob
+  {
+  public:
+    CPVRPersistGroupJob(CPVRChannelGroup *group) { m_group = group; }
+    virtual ~CPVRPersistGroupJob() {}
+    virtual const char *GetType() const { return "pvr-channelgroup-persist"; }
+
+    virtual bool DoWork();
+
+  private:
+    CPVRChannelGroup *m_group;
   };
 }

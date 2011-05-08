@@ -1605,6 +1605,28 @@ void CVideoDatabase::GetMusicVideoInfo(const CStdString& strFilenameAndPath, CVi
   }
 }
 
+void CVideoDatabase::GetSetInfo(int idSet, CVideoInfoTag& details)
+{
+  try
+  {
+    if (idSet < 0)
+      return;
+
+    CStdString where = PrepareSQL("WHERE sets.idSet=%d", idSet);
+    CFileItemList items;
+    if (!GetSetsNav("videodb://1/7/", items, VIDEODB_CONTENT_MOVIES, where) ||
+        items.Size() != 1 ||
+        !items[0]->HasVideoInfoTag())
+      return;
+
+    details = *(items[0]->GetVideoInfoTag());
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s (%d) failed", __FUNCTION__, idSet);
+  }
+}
+
 void CVideoDatabase::AddGenreAndDirectorsAndStudios(const CVideoInfoTag& details, vector<int>& vecDirectors, vector<int>& vecGenres, vector<int>& vecStudios)
 {
   // add all directors
@@ -3824,6 +3846,7 @@ bool CVideoDatabase::GetSetsNav(const CStdString& strBaseDir, CFileItemList& ite
       for (it=mapSets.begin();it != mapSets.end();++it)
       {
         CFileItemPtr pItem(new CFileItem(it->second.first));
+        pItem->GetVideoInfoTag()->m_iDbId = it->first;
         CStdString strDir;
         strDir.Format("%ld/", it->first);
         pItem->m_strPath=strBaseDir + strDir;
@@ -3845,6 +3868,7 @@ bool CVideoDatabase::GetSetsNav(const CStdString& strBaseDir, CFileItemList& ite
       while (!m_pDS->eof())
       {
         CFileItemPtr pItem(new CFileItem(m_pDS->fv("sets.strSet").get_asString()));
+        pItem->GetVideoInfoTag()->m_iDbId = m_pDS->fv("sets.idSet").get_asInt();
         CStdString strDir;
         strDir.Format("%ld/", m_pDS->fv("sets.idSet").get_asInt());
         pItem->m_strPath=strBaseDir + strDir;
@@ -6801,11 +6825,11 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
               }
             }
           }
-
-          xmlDoc.Clear();
-          TiXmlDeclaration decl("1.0", "UTF-8", "yes");
-          xmlDoc.InsertEndChild(decl);
         }
+
+        xmlDoc.Clear();
+        TiXmlDeclaration decl("1.0", "UTF-8", "yes");
+        xmlDoc.InsertEndChild(decl);
       }
 
       if (images && !bSkip)
@@ -6897,11 +6921,11 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
               }
             }
           }
-
-          xmlDoc.Clear();
-          TiXmlDeclaration decl("1.0", "UTF-8", "yes");
-          xmlDoc.InsertEndChild(decl);
         }
+
+        xmlDoc.Clear();
+        TiXmlDeclaration decl("1.0", "UTF-8", "yes");
+        xmlDoc.InsertEndChild(decl);
       }
       if (images && !bSkip)
       {
@@ -6978,11 +7002,11 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
               }
             }
           }
-
-          xmlDoc.Clear();
-          TiXmlDeclaration decl("1.0", "UTF-8", "yes");
-          xmlDoc.InsertEndChild(decl);
         }
+
+        xmlDoc.Clear();
+        TiXmlDeclaration decl("1.0", "UTF-8", "yes");
+        xmlDoc.InsertEndChild(decl);
       }
       if (images && !bSkip)
       {
@@ -7116,11 +7140,11 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
                 }
               }
             }
-
-            xmlDoc.Clear();
-            TiXmlDeclaration decl("1.0", "UTF-8", "yes");
-            xmlDoc.InsertEndChild(decl);
           }
+
+          xmlDoc.Clear();
+          TiXmlDeclaration decl("1.0", "UTF-8", "yes");
+          xmlDoc.InsertEndChild(decl);
         }
 
         if (images && !bSkip)

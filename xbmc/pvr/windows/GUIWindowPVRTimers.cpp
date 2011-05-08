@@ -36,6 +36,15 @@ using namespace PVR;
 CGUIWindowPVRTimers::CGUIWindowPVRTimers(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_TIMERS, CONTROL_BTNTIMERS, CONTROL_LIST_TIMERS)
 {
+  m_bObservingTimers = false;
+}
+
+void CGUIWindowPVRTimers::ResetObservers(void)
+{
+  CSingleLock lock(m_critSection);
+
+  m_bObservingTimers = true;
+  g_PVRTimers->RegisterObserver(this);
 }
 
 void CGUIWindowPVRTimers::GetContextButtons(int itemNumber, CContextButtons &buttons) const
@@ -89,6 +98,12 @@ void CGUIWindowPVRTimers::UpdateData(void)
   if (m_bIsFocusing)
     return;
 
+  if (!m_bObservingTimers)
+  {
+    m_bObservingTimers = true;
+    g_PVRTimers->RegisterObserver(this);
+  }
+
   CLog::Log(LOGDEBUG, "CGUIWindowPVRTimers - %s - update window '%s'. set view to %d", __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
@@ -105,7 +120,6 @@ void CGUIWindowPVRTimers::UpdateData(void)
   m_parent->m_vecItems->Sort(m_iSortMethod, m_iSortOrder);
   m_parent->m_viewControl.SetItems(*m_parent->m_vecItems);
   m_parent->m_viewControl.SetSelectedItem(m_iSelected);
-  graphicsLock.Leave();
 
   m_parent->SetLabel(CONTROL_LABELHEADER, g_localizeStrings.Get(19025));
   m_parent->SetLabel(CONTROL_LABELGROUP, "");
@@ -187,14 +201,7 @@ bool CGUIWindowPVRTimers::OnContextButtonAdd(CFileItem *item, CONTEXT_BUTTON but
   bool bReturn = false;
 
   if (button == CONTEXT_BUTTON_ADD)
-  {
-    bReturn = true;
-    CPVRTimerInfoTag *newtimer = g_PVRTimers->InstantTimer(NULL, false);
-    CFileItem *item = new CFileItem(*newtimer);
-
-    if (ShowTimerSettings(item))
-      g_PVRTimers->AddTimer(*item);
-  }
+    bReturn = ShowNewTimerDialog();
 
   return bReturn;
 }
@@ -261,4 +268,22 @@ bool CGUIWindowPVRTimers::OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON 
   }
 
   return bReturn;
+}
+
+void CGUIWindowPVRTimers::Notify(const Observable &obs, const CStdString& msg)
+{
+  if (msg.Equals("timers"))
+  {
+    if (IsVisible())
+      SetInvalid();
+    else
+      m_bUpdateRequired = true;
+  }
+  else if (msg.Equals("timers-reset"))
+  {
+    if (IsVisible())
+      UpdateData();
+    else
+      m_bUpdateRequired = true;
+  }
 }

@@ -38,6 +38,15 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		180184C713743E4C0048F7F2 /* GUIEPGGridContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184C513743E4C0048F7F2 /* GUIEPGGridContainer.cpp */; };
+		180184CF13743F090048F7F2 /* PVRClients.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184CD13743F090048F7F2 /* PVRClients.cpp */; };
+		180184D513743F470048F7F2 /* PVRGUIInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184D313743F470048F7F2 /* PVRGUIInfo.cpp */; };
+		180184DF137440990048F7F2 /* AddonCallbacks.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184DB137440990048F7F2 /* AddonCallbacks.cpp */; };
+		180184E0137440990048F7F2 /* AddonCallbacksGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184DD137440990048F7F2 /* AddonCallbacksGUI.cpp */; };
+		180184E5137440BA0048F7F2 /* AddonCallbacksAddon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184E3137440BA0048F7F2 /* AddonCallbacksAddon.cpp */; };
+		180184EA137440D90048F7F2 /* AddonCallbacksPVR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 180184E8137440D90048F7F2 /* AddonCallbacksPVR.cpp */; };
+		18018537137467810048F7F2 /* HTSPSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18018535137467810048F7F2 /* HTSPSession.cpp */; };
+		1801857613746BBC0048F7F2 /* libTcpSocket.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1801857513746BBC0048F7F2 /* libTcpSocket.a */; };
 		183C454D130C4D55006AA317 /* xbmcvfsmodule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 189047D11301DEAB00C11012 /* xbmcvfsmodule.cpp */; settings = {COMPILER_FLAGS = "-I$XBMC_DEPENDS/include/python2.6"; }; };
 		183FDF8A11AF0B0500B81E9C /* PluginSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 183FDF8811AF0B0500B81E9C /* PluginSource.cpp */; };
 		183FDF8B11AF0B0500B81E9C /* PluginSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 183FDF8811AF0B0500B81E9C /* PluginSource.cpp */; };
@@ -485,6 +494,13 @@
 		43BF09A31080D1E900E25290 /* RenderingControlSCPD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 43BF099F1080D1E900E25290 /* RenderingControlSCPD.cpp */; };
 		43BF09AA1080D2ED00E25290 /* RdrConnectionManagerSCPD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 43BF09A81080D2ED00E25290 /* RdrConnectionManagerSCPD.cpp */; };
 		43BF09AB1080D2ED00E25290 /* RdrConnectionManagerSCPD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 43BF09A81080D2ED00E25290 /* RdrConnectionManagerSCPD.cpp */; };
+		43EA4276136C04D9002C82A5 /* XBDateTime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 384718D61325BA04000486D6 /* XBDateTime.cpp */; };
+		43EA4279136C079A002C82A5 /* JSONServiceDescription.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C84BF7321349BB74006D6FC9 /* JSONServiceDescription.cpp */; };
+		43EA427E136C07BF002C82A5 /* XBMC_keytable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8EC5D0C1369519D00CCC10D /* XBMC_keytable.cpp */; };
+		43EA4282136C0806002C82A5 /* RecentlyAddedJob.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 18ACF84113596C9B00B67371 /* RecentlyAddedJob.cpp */; };
+		43EA4297136C1D9E002C82A5 /* RenderCapture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F56579AD13060D1E0085ED7F /* RenderCapture.cpp */; };
+		43EA429B136C1E2F002C82A5 /* xbmcvfsmodule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 189047D11301DEAB00C11012 /* xbmcvfsmodule.cpp */; };
+		43EA42B0136C2274002C82A5 /* InputOperations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C807114B135DB5CC002F601B /* InputOperations.cpp */; };
 		7C2D6AE40F35453E00DD2E85 /* SpecialProtocol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2D6AE20F35453E00DD2E85 /* SpecialProtocol.cpp */; };
 		7C45DBE910F325C400D4BBF3 /* DAVDirectory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C45DBE710F325C400D4BBF3 /* DAVDirectory.cpp */; };
 		7C45DBEA10F325C400D4BBF3 /* DAVDirectory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C45DBE710F325C400D4BBF3 /* DAVDirectory.cpp */; };
@@ -580,12 +596,12 @@
 		C85EB75D1174614E0008E5A5 /* Repository.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C85EB75A1174614E0008E5A5 /* Repository.cpp */; };
 		C8D0B2AF1265A9A800F0C0AC /* SystemGlobals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8D0B2AE1265A9A800F0C0AC /* SystemGlobals.cpp */; };
 		C8D0B2B01265A9A800F0C0AC /* SystemGlobals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8D0B2AE1265A9A800F0C0AC /* SystemGlobals.cpp */; };
+		C8EC5D0E1369519D00CCC10D /* XBMC_keytable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8EC5D0C1369519D00CCC10D /* XBMC_keytable.cpp */; };
 		C8F371C9132A502400E903AE /* Epg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371BE132A502400E903AE /* Epg.cpp */; };
 		C8F371CA132A502400E903AE /* EpgContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371C0132A502400E903AE /* EpgContainer.cpp */; };
 		C8F371CB132A502400E903AE /* EpgDatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371C2132A502400E903AE /* EpgDatabase.cpp */; };
 		C8F371CC132A502400E903AE /* EpgInfoTag.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371C4132A502400E903AE /* EpgInfoTag.cpp */; };
 		C8F371CD132A502400E903AE /* EpgSearchFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371C6132A502400E903AE /* EpgSearchFilter.cpp */; };
-		C8F371D1132A504500E903AE /* AddonHelpers_PVR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371CF132A504500E903AE /* AddonHelpers_PVR.cpp */; };
 		C8F37227132A505B00E903AE /* PVRClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371D5132A505A00E903AE /* PVRClient.cpp */; };
 		C8F37229132A505B00E903AE /* PVRChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371D9132A505A00E903AE /* PVRChannel.cpp */; };
 		C8F3722A132A505B00E903AE /* PVRChannelGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F371DB132A505A00E903AE /* PVRChannelGroup.cpp */; };
@@ -620,12 +636,8 @@
 		C8F3724C132A505B00E903AE /* GUIWindowPVRRecordings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F3721F132A505B00E903AE /* GUIWindowPVRRecordings.cpp */; };
 		C8F3724D132A505B00E903AE /* GUIWindowPVRSearch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37221132A505B00E903AE /* GUIWindowPVRSearch.cpp */; };
 		C8F3724E132A505B00E903AE /* GUIWindowPVRTimers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37223132A505B00E903AE /* GUIWindowPVRTimers.cpp */; };
-		C8F3726B132A529A00E903AE /* GUIEPGGridContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37269132A529A00E903AE /* GUIEPGGridContainer.cpp */; };
 		C8F37270132A52C400E903AE /* PVRDirectory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F3726E132A52C400E903AE /* PVRDirectory.cpp */; };
 		C8F37275132A52F000E903AE /* TextSearch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37273132A52F000E903AE /* TextSearch.cpp */; };
-		C8F3727C132A534D00E903AE /* AddonHelpers_Addon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37276132A534D00E903AE /* AddonHelpers_Addon.cpp */; };
-		C8F3727D132A534D00E903AE /* AddonHelpers_GUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37278132A534D00E903AE /* AddonHelpers_GUI.cpp */; };
-		C8F3727E132A534D00E903AE /* AddonHelpers_local.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F3727A132A534D00E903AE /* AddonHelpers_local.cpp */; };
 		C8F37283132A538400E903AE /* GUIDialogExtendedProgressBar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37281132A538400E903AE /* GUIDialogExtendedProgressBar.cpp */; };
 		C8F37286132A53BD00E903AE /* DVDDemuxPVRClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37284132A53BD00E903AE /* DVDDemuxPVRClient.cpp */; };
 		C8F3728B132A53E700E903AE /* PVRFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8F37289132A53E700E903AE /* PVRFile.cpp */; };
@@ -718,7 +730,6 @@
 		E38E1FAE0D25F9FD00618676 /* DVDSubtitleParserSubrip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15940D25F9FA00618676 /* DVDSubtitleParserSubrip.cpp */; };
 		E38E1FAF0D25F9FD00618676 /* DVDSubtitleStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15960D25F9FA00618676 /* DVDSubtitleStream.cpp */; };
 		E38E1FC10D25F9FD00618676 /* ADPCMCodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15DB0D25F9FA00618676 /* ADPCMCodec.cpp */; };
-		E38E1FC30D25F9FD00618676 /* AIFFcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15DF0D25F9FA00618676 /* AIFFcodec.cpp */; };
 		E38E1FC50D25F9FD00618676 /* AudioDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E30D25F9FA00618676 /* AudioDecoder.cpp */; };
 		E38E1FC60D25F9FD00618676 /* CDDAcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E60D25F9FA00618676 /* CDDAcodec.cpp */; };
 		E38E1FC70D25F9FD00618676 /* CodecFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E80D25F9FA00618676 /* CodecFactory.cpp */; };
@@ -1129,9 +1140,7 @@
 		E3E91FFF0D8C61DF002BF43D /* Socket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E3E91FFC0D8C61DF002BF43D /* Socket.cpp */; };
 		E3E920020D8C622A002BF43D /* EventClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E3E920010D8C622A002BF43D /* EventClient.cpp */; };
 		E43196170FB2382E0030E150 /* HTSPDirectory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E43196140FB2382E0030E150 /* HTSPDirectory.cpp */; };
-		E43196180FB2382E0030E150 /* HTSPSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E43196160FB2382E0030E150 /* HTSPSession.cpp */; };
 		E43196190FB2382E0030E150 /* HTSPDirectory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E43196140FB2382E0030E150 /* HTSPDirectory.cpp */; };
-		E431961A0FB2382E0030E150 /* HTSPSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E43196160FB2382E0030E150 /* HTSPSession.cpp */; };
 		E435380311076A2900792AB8 /* eprintf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5ACB5370FC3DF3D00AAA056 /* eprintf.cpp */; };
 		E435380411076A2900792AB8 /* eprintf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5ACB5370FC3DF3D00AAA056 /* eprintf.cpp */; };
 		E46F7C2A0F77217400C25D29 /* Zeroconf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E46F7C280F77217400C25D29 /* Zeroconf.cpp */; };
@@ -1303,7 +1312,6 @@
 		F5A1C9130F6B06CF00A96ABD /* DVDSubtitleParserSubrip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15940D25F9FA00618676 /* DVDSubtitleParserSubrip.cpp */; };
 		F5A1C9140F6B06CF00A96ABD /* DVDSubtitleStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15960D25F9FA00618676 /* DVDSubtitleStream.cpp */; };
 		F5A1C9190F6B06CF00A96ABD /* ADPCMCodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15DB0D25F9FA00618676 /* ADPCMCodec.cpp */; };
-		F5A1C91B0F6B06CF00A96ABD /* AIFFcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15DF0D25F9FA00618676 /* AIFFcodec.cpp */; };
 		F5A1C91D0F6B06CF00A96ABD /* AudioDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E30D25F9FA00618676 /* AudioDecoder.cpp */; };
 		F5A1C91E0F6B06CF00A96ABD /* CDDAcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E60D25F9FA00618676 /* CDDAcodec.cpp */; };
 		F5A1C91F0F6B06CF00A96ABD /* CodecFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E38E15E80D25F9FA00618676 /* CodecFactory.cpp */; };
@@ -1916,6 +1924,23 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = ../../../System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		180184C513743E4C0048F7F2 /* GUIEPGGridContainer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIEPGGridContainer.cpp; sourceTree = "<group>"; };
+		180184C613743E4C0048F7F2 /* GUIEPGGridContainer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIEPGGridContainer.h; sourceTree = "<group>"; };
+		180184CD13743F090048F7F2 /* PVRClients.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRClients.cpp; sourceTree = "<group>"; };
+		180184CE13743F090048F7F2 /* PVRClients.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PVRClients.h; sourceTree = "<group>"; };
+		180184D313743F470048F7F2 /* PVRGUIInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRGUIInfo.cpp; sourceTree = "<group>"; };
+		180184D413743F470048F7F2 /* PVRGUIInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PVRGUIInfo.h; sourceTree = "<group>"; };
+		180184DB137440990048F7F2 /* AddonCallbacks.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonCallbacks.cpp; sourceTree = "<group>"; };
+		180184DC137440990048F7F2 /* AddonCallbacks.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonCallbacks.h; sourceTree = "<group>"; };
+		180184DD137440990048F7F2 /* AddonCallbacksGUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonCallbacksGUI.cpp; sourceTree = "<group>"; };
+		180184DE137440990048F7F2 /* AddonCallbacksGUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonCallbacksGUI.h; sourceTree = "<group>"; };
+		180184E3137440BA0048F7F2 /* AddonCallbacksAddon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonCallbacksAddon.cpp; sourceTree = "<group>"; };
+		180184E4137440BA0048F7F2 /* AddonCallbacksAddon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonCallbacksAddon.h; sourceTree = "<group>"; };
+		180184E8137440D90048F7F2 /* AddonCallbacksPVR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonCallbacksPVR.cpp; sourceTree = "<group>"; };
+		180184E9137440D90048F7F2 /* AddonCallbacksPVR.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonCallbacksPVR.h; sourceTree = "<group>"; };
+		18018535137467810048F7F2 /* HTSPSession.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HTSPSession.cpp; sourceTree = "<group>"; };
+		18018536137467810048F7F2 /* HTSPSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTSPSession.h; sourceTree = "<group>"; };
+		1801857513746BBC0048F7F2 /* libTcpSocket.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libTcpSocket.a; sourceTree = "<group>"; };
 		18308CB41303370800AA309E /* stat_utf8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stat_utf8.h; sourceTree = "<group>"; };
 		18308CB51303370800AA309E /* stdio_utf8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdio_utf8.h; sourceTree = "<group>"; };
 		183FDF8811AF0B0500B81E9C /* PluginSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PluginSource.cpp; sourceTree = "<group>"; };
@@ -2532,6 +2557,8 @@
 		C85EB75A1174614E0008E5A5 /* Repository.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Repository.cpp; sourceTree = "<group>"; };
 		C85EB75B1174614E0008E5A5 /* Repository.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Repository.h; sourceTree = "<group>"; };
 		C8D0B2AE1265A9A800F0C0AC /* SystemGlobals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SystemGlobals.cpp; sourceTree = "<group>"; };
+		C8EC5D0C1369519D00CCC10D /* XBMC_keytable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XBMC_keytable.cpp; sourceTree = "<group>"; };
+		C8EC5D0D1369519D00CCC10D /* XBMC_keytable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XBMC_keytable.h; sourceTree = "<group>"; };
 		C8F371BE132A502400E903AE /* Epg.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Epg.cpp; sourceTree = "<group>"; };
 		C8F371BF132A502400E903AE /* Epg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Epg.h; sourceTree = "<group>"; };
 		C8F371C0132A502400E903AE /* EpgContainer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EpgContainer.cpp; sourceTree = "<group>"; };
@@ -2542,8 +2569,6 @@
 		C8F371C5132A502400E903AE /* EpgInfoTag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EpgInfoTag.h; sourceTree = "<group>"; };
 		C8F371C6132A502400E903AE /* EpgSearchFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EpgSearchFilter.cpp; sourceTree = "<group>"; };
 		C8F371C7132A502400E903AE /* EpgSearchFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EpgSearchFilter.h; sourceTree = "<group>"; };
-		C8F371CF132A504500E903AE /* AddonHelpers_PVR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonHelpers_PVR.cpp; sourceTree = "<group>"; };
-		C8F371D0132A504500E903AE /* AddonHelpers_PVR.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonHelpers_PVR.h; sourceTree = "<group>"; };
 		C8F371D5132A505A00E903AE /* PVRClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRClient.cpp; sourceTree = "<group>"; };
 		C8F371D6132A505A00E903AE /* PVRClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PVRClient.h; sourceTree = "<group>"; };
 		C8F371D9132A505A00E903AE /* PVRChannel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRChannel.cpp; sourceTree = "<group>"; };
@@ -2612,18 +2637,10 @@
 		C8F37222132A505B00E903AE /* GUIWindowPVRSearch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIWindowPVRSearch.h; sourceTree = "<group>"; };
 		C8F37223132A505B00E903AE /* GUIWindowPVRTimers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIWindowPVRTimers.cpp; sourceTree = "<group>"; };
 		C8F37224132A505B00E903AE /* GUIWindowPVRTimers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIWindowPVRTimers.h; sourceTree = "<group>"; };
-		C8F37269132A529A00E903AE /* GUIEPGGridContainer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIEPGGridContainer.cpp; sourceTree = "<group>"; };
-		C8F3726A132A529A00E903AE /* GUIEPGGridContainer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIEPGGridContainer.h; sourceTree = "<group>"; };
 		C8F3726E132A52C400E903AE /* PVRDirectory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRDirectory.cpp; sourceTree = "<group>"; };
 		C8F3726F132A52C400E903AE /* PVRDirectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PVRDirectory.h; sourceTree = "<group>"; };
 		C8F37273132A52F000E903AE /* TextSearch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextSearch.cpp; sourceTree = "<group>"; };
 		C8F37274132A52F000E903AE /* TextSearch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TextSearch.h; sourceTree = "<group>"; };
-		C8F37276132A534D00E903AE /* AddonHelpers_Addon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonHelpers_Addon.cpp; sourceTree = "<group>"; };
-		C8F37277132A534D00E903AE /* AddonHelpers_Addon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonHelpers_Addon.h; sourceTree = "<group>"; };
-		C8F37278132A534D00E903AE /* AddonHelpers_GUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonHelpers_GUI.cpp; sourceTree = "<group>"; };
-		C8F37279132A534D00E903AE /* AddonHelpers_GUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonHelpers_GUI.h; sourceTree = "<group>"; };
-		C8F3727A132A534D00E903AE /* AddonHelpers_local.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddonHelpers_local.cpp; sourceTree = "<group>"; };
-		C8F3727B132A534D00E903AE /* AddonHelpers_local.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddonHelpers_local.h; sourceTree = "<group>"; };
 		C8F37281132A538400E903AE /* GUIDialogExtendedProgressBar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogExtendedProgressBar.cpp; sourceTree = "<group>"; };
 		C8F37282132A538400E903AE /* GUIDialogExtendedProgressBar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogExtendedProgressBar.h; sourceTree = "<group>"; };
 		C8F37284132A53BD00E903AE /* DVDDemuxPVRClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DVDDemuxPVRClient.cpp; path = DVDDemuxers/DVDDemuxPVRClient.cpp; sourceTree = "<group>"; };
@@ -2834,8 +2851,6 @@
 		E38E15B60D25F9FA00618676 /* IPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IPlayer.h; sourceTree = "<group>"; };
 		E38E15DB0D25F9FA00618676 /* ADPCMCodec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ADPCMCodec.cpp; sourceTree = "<group>"; };
 		E38E15DC0D25F9FA00618676 /* ADPCMCodec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADPCMCodec.h; sourceTree = "<group>"; };
-		E38E15DF0D25F9FA00618676 /* AIFFcodec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AIFFcodec.cpp; sourceTree = "<group>"; };
-		E38E15E00D25F9FA00618676 /* AIFFcodec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AIFFcodec.h; sourceTree = "<group>"; };
 		E38E15E30D25F9FA00618676 /* AudioDecoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioDecoder.cpp; sourceTree = "<group>"; };
 		E38E15E40D25F9FA00618676 /* AudioDecoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioDecoder.h; sourceTree = "<group>"; };
 		E38E15E50D25F9FA00618676 /* CachingCodec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CachingCodec.h; sourceTree = "<group>"; };
@@ -3705,8 +3720,6 @@
 		E3E920010D8C622A002BF43D /* EventClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EventClient.cpp; sourceTree = "<group>"; };
 		E43196130FB2382D0030E150 /* HTSPDirectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTSPDirectory.h; sourceTree = "<group>"; };
 		E43196140FB2382E0030E150 /* HTSPDirectory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HTSPDirectory.cpp; sourceTree = "<group>"; };
-		E43196150FB2382E0030E150 /* HTSPSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTSPSession.h; sourceTree = "<group>"; };
-		E43196160FB2382E0030E150 /* HTSPSession.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HTSPSession.cpp; sourceTree = "<group>"; };
 		E46F7C280F77217400C25D29 /* Zeroconf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Zeroconf.cpp; sourceTree = "<group>"; };
 		E46F7C290F77217400C25D29 /* Zeroconf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Zeroconf.h; sourceTree = "<group>"; };
 		E46F7C2B0F77219700C25D29 /* ZeroconfOSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZeroconfOSX.h; sourceTree = "<group>"; };
@@ -3990,6 +4003,7 @@
 				F56C8CF0131F5DED000AD0F6 /* libxml2.dylib in Frameworks */,
 				F56C8CF3131F5DFD000AD0F6 /* libiconv.dylib in Frameworks */,
 				F56C8CF6131F5E0B000AD0F6 /* libncurses.dylib in Frameworks */,
+				1801857613746BBC0048F7F2 /* libTcpSocket.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4083,14 +4097,14 @@
 		18B49FF01152BEEB001AF8A6 /* addons */ = {
 			isa = PBXGroup;
 			children = (
-				C8F37276132A534D00E903AE /* AddonHelpers_Addon.cpp */,
-				C8F37277132A534D00E903AE /* AddonHelpers_Addon.h */,
-				C8F37278132A534D00E903AE /* AddonHelpers_GUI.cpp */,
-				C8F37279132A534D00E903AE /* AddonHelpers_GUI.h */,
-				C8F3727A132A534D00E903AE /* AddonHelpers_local.cpp */,
-				C8F3727B132A534D00E903AE /* AddonHelpers_local.h */,
-				C8F371CF132A504500E903AE /* AddonHelpers_PVR.cpp */,
-				C8F371D0132A504500E903AE /* AddonHelpers_PVR.h */,
+				180184DB137440990048F7F2 /* AddonCallbacks.cpp */,
+				180184DC137440990048F7F2 /* AddonCallbacks.h */,
+				180184DD137440990048F7F2 /* AddonCallbacksGUI.cpp */,
+				180184DE137440990048F7F2 /* AddonCallbacksGUI.h */,
+				180184E3137440BA0048F7F2 /* AddonCallbacksAddon.cpp */,
+				180184E4137440BA0048F7F2 /* AddonCallbacksAddon.h */,
+				180184E8137440D90048F7F2 /* AddonCallbacksPVR.cpp */,
+				180184E9137440D90048F7F2 /* AddonCallbacksPVR.h */,
 				184C472D1296BC6E0006DB3E /* Service.cpp */,
 				184C472E1296BC6E0006DB3E /* Service.h */,
 				18B7C97A12943809009E7A26 /* GUIWindowAddonBrowser.cpp */,
@@ -4135,8 +4149,6 @@
 		18B7C3AA1294219F009E7A26 /* guilib */ = {
 			isa = PBXGroup;
 			children = (
-				C8F37269132A529A00E903AE /* GUIEPGGridContainer.cpp */,
-				C8F3726A132A529A00E903AE /* GUIEPGGridContainer.h */,
 				18B7C6F61294222D009E7A26 /* AnimatedGif.h */,
 				18B7C6F71294222D009E7A26 /* AudioContext.h */,
 				18B7C6F81294222D009E7A26 /* D3DResource.h */,
@@ -4425,6 +4437,8 @@
 				E38E1EAD0D25F9FD00618676 /* XBIRRemote.h */,
 				18B7C8D512942546009E7A26 /* XBMC_keyboard.h */,
 				7C779E31104A57E500F444C4 /* XBMC_keysym.h */,
+				C8EC5D0C1369519D00CCC10D /* XBMC_keytable.cpp */,
+				C8EC5D0D1369519D00CCC10D /* XBMC_keytable.h */,
 				18B7C8D612942546009E7A26 /* XBMC_mouse.h */,
 				7C779E34104A57E500F444C4 /* XBMC_vkeys.h */,
 			);
@@ -5027,6 +5041,8 @@
 		C8F371BD132A502400E903AE /* epg */ = {
 			isa = PBXGroup;
 			children = (
+				180184C513743E4C0048F7F2 /* GUIEPGGridContainer.cpp */,
+				180184C613743E4C0048F7F2 /* GUIEPGGridContainer.h */,
 				C8F371BE132A502400E903AE /* Epg.cpp */,
 				C8F371BF132A502400E903AE /* Epg.h */,
 				C8F371C0132A502400E903AE /* EpgContainer.cpp */,
@@ -5050,6 +5066,8 @@
 				C8F371F9132A505A00E903AE /* epg */,
 				C8F37204132A505A00E903AE /* PVRDatabase.cpp */,
 				C8F37205132A505A00E903AE /* PVRDatabase.h */,
+				180184D313743F470048F7F2 /* PVRGUIInfo.cpp */,
+				180184D413743F470048F7F2 /* PVRGUIInfo.h */,
 				C8F37206132A505A00E903AE /* PVRManager.cpp */,
 				C8F37207132A505A00E903AE /* PVRManager.h */,
 				C8F37208132A505A00E903AE /* recordings */,
@@ -5064,6 +5082,8 @@
 			children = (
 				C8F371D5132A505A00E903AE /* PVRClient.cpp */,
 				C8F371D6132A505A00E903AE /* PVRClient.h */,
+				180184CD13743F090048F7F2 /* PVRClients.cpp */,
+				180184CE13743F090048F7F2 /* PVRClients.h */,
 			);
 			path = addons;
 			sourceTree = "<group>";
@@ -5686,8 +5706,6 @@
 				E36578870D3AA7B40033CC1C /* DVDPlayerCodec.h */,
 				E38E15DB0D25F9FA00618676 /* ADPCMCodec.cpp */,
 				E38E15DC0D25F9FA00618676 /* ADPCMCodec.h */,
-				E38E15DF0D25F9FA00618676 /* AIFFcodec.cpp */,
-				E38E15E00D25F9FA00618676 /* AIFFcodec.h */,
 				E38E15E30D25F9FA00618676 /* AudioDecoder.cpp */,
 				E38E15E40D25F9FA00618676 /* AudioDecoder.h */,
 				E38E15E50D25F9FA00618676 /* CachingCodec.h */,
@@ -5798,6 +5816,8 @@
 		E38E16940D25F9FA00618676 /* filesystem */ = {
 			isa = PBXGroup;
 			children = (
+				18018535137467810048F7F2 /* HTSPSession.cpp */,
+				18018536137467810048F7F2 /* HTSPSession.h */,
 				C8F37289132A53E700E903AE /* PVRFile.cpp */,
 				C8F3728A132A53E700E903AE /* PVRFile.h */,
 				C8F3726E132A52C400E903AE /* PVRDirectory.cpp */,
@@ -5898,8 +5918,6 @@
 				E38E16EB0D25F9FA00618676 /* HDHomeRun.h */,
 				E43196130FB2382D0030E150 /* HTSPDirectory.h */,
 				E43196140FB2382E0030E150 /* HTSPDirectory.cpp */,
-				E43196150FB2382E0030E150 /* HTSPSession.h */,
-				E43196160FB2382E0030E150 /* HTSPSession.cpp */,
 				F584E12C0F257C5100DB26A5 /* HTTPDirectory.h */,
 				F584E12D0F257C5100DB26A5 /* HTTPDirectory.cpp */,
 				E38E16EC0D25F9FA00618676 /* IDirectory.cpp */,
@@ -7106,6 +7124,7 @@
 		F57E1ED20E36E8FD00700C9D /* internal libs */ = {
 			isa = PBXGroup;
 			children = (
+				1801857513746BBC0048F7F2 /* libTcpSocket.a */,
 				F5DC888A110A654000EE1B15 /* libapetag.a */,
 				F5A7A6F0112893330059D6AA /* libjsoncpp.a */,
 				43352CED1071634600706B8A /* libsquish.a */,
@@ -7410,7 +7429,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "#!/bin/bash\n\necho \"copy root files\"\n\nif [ \"$ACTION\" = build ] ; then\n\n# for external testing\n#TARGET_NAME=XBMC.app\n#SRCROOT=/Users/Shared/xbmc_svn/XBMC\n#TARGET_BUILD_DIR=/Users/Shared/xbmc_svn/XBMC/build/Debug\n\n# rsync command with exclusions for items we don't want in the app package\nSYNC=\"rsync -av --exclude CVS* --exclude .svn* --exclude .cvsignore* --exclude .cvspass* --exclude .DS_Store* --exclude *.dll --exclude *.DLL --exclude *linux.* --exclude *.zlib --exclude *.a\"\n\n# rsync command for excluding pngs and jpgs as well. Note that if the skin itself is not compiled\n# using XBMCTex then excluding the pngs and jpgs will most likely make the skin unusable \nSYNCSKIN=\"rsync -av --exclude CVS* --exclude .svn* --exclude .cvsignore* --exclude .cvspass* --exclude .DS_Store* --exclude *.dll  --exclude *.DLL --exclude *linux.* --exclude *.png --exclude *.jpg --exclude *.bat\"\n\n# rsync command for including everything but the skins\nADDONSYNC=\"rsync -av --exclude CVS* --exclude .svn* --exclude .cvsignore* --exclude .cvspass* --exclude .DS_Store* --exclude skin.confluence\"\n\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/language\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/media\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/sounds\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/system\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/userdata\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/media\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/extras/user\"\n\n${SYNC} \"$SRCROOT/LICENSE.GPL\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/\"\n${SYNC} \"$SRCROOT/xbmc/osx/Credits.html\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/\"\n${SYNC} \"$SRCROOT/tools/osx/XBMCHelper\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${SYNC} \"$SRCROOT/tools/osx/org.xbmc.helper.plist\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${SYNC} \"$SRCROOT/tools/osx/preflight\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${ADDONSYNC} \"$SRCROOT/addons\"\t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/language\"\t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/media\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNCSKIN} \"$SRCROOT/addons/skin.confluence\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons\"\n${SYNC} \"$SRCROOT/addons/skin.confluence/backgrounds\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons/skin.confluence\"\n${SYNC} \"$SRCROOT/addons/skin.confluence/icon.png\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons/skin.confluence\"\n${SYNC} \"$SRCROOT/sounds\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/system\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/userdata\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n\n# copy extra packages if applicable\nif [ -d \"$SRCROOT/extras/system\" ]; then\n\t${SYNC} \"$SRCROOT/extras/system/\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\nfi\n\n# copy extra user packages if applicable\nif [ -d \"$SRCROOT/extras/user\" ]; then\n\t${SYNC} \"$SRCROOT/extras/user/\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/extras/user\"\nfi\n\n\n\n# magic that gets the icon to update\ntouch \"$TARGET_BUILD_DIR/$TARGET_NAME\"\n\n# not sure we want to do this with out major testing, many scripts cannot handle the spaces in the app name\n#mv \"$TARGET_BUILD_DIR/$TARGET_NAME\" \"$TARGET_BUILD_DIR/XBMC Media Center.app\"\n\nfi";
+			shellScript = "#!/bin/bash\n\necho \"copy root files\"\n\nif [ \"$ACTION\" = build ] ; then\n\n# for external testing\n#TARGET_NAME=XBMC.app\n#SRCROOT=/Users/Shared/xbmc_svn/XBMC\n#TARGET_BUILD_DIR=/Users/Shared/xbmc_svn/XBMC/build/Debug\n# force TARGET_NAME on ppc\nTARGET_NAME=$PRODUCT_NAME\n\n# rsync command with exclusions for items we don't want in the app package\nSYNC=\"rsync -aq --exclude .DS_Store* --exclude *.dll --exclude *.DLL --exclude *linux.* --exclude *arm-osx.* --exclude *.zlib --exclude *.a\"\n\n# rsync command for excluding pngs and jpgs as well. Note that if the skin itself is not compiled\n# using XBMCTex then excluding the pngs and jpgs will most likely make the skin unusable \nSYNCSKIN=\"rsync -aq --exclude CVS* --exclude .svn* --exclude .cvsignore* --exclude .cvspass* --exclude .DS_Store* --exclude *.dll  --exclude *.DLL --exclude *linux.* --exclude *.png --exclude *.jpg --exclude *.bat\"\n\n# rsync command for including everything but the skins\nADDONSYNC=\"rsync -aq --exclude .DS_Store* --exclude skin.confluence\"\n\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/language\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/media\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/sounds\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/system\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/userdata\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/media\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/extras/user\"\n\n${SYNC} \"$SRCROOT/LICENSE.GPL\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/\"\n${SYNC} \"$SRCROOT/xbmc/osx/Credits.html\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/\"\n${SYNC} \"$SRCROOT/tools/osx/XBMCHelper\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${SYNC} \"$SRCROOT/tools/osx/org.xbmc.helper.plist\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${SYNC} \"$SRCROOT/tools/osx/preflight\"\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/tools/\"\n${ADDONSYNC} \"$SRCROOT/addons\"\t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/language\"\t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/media\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNCSKIN} \"$SRCROOT/addons/skin.confluence\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons\"\n${SYNC} \"$SRCROOT/addons/skin.confluence/backgrounds\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons/skin.confluence\"\n${SYNC} \"$SRCROOT/addons/skin.confluence/icon.png\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/addons/skin.confluence\"\n${SYNC} \"$SRCROOT/sounds\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/system\" \t\t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n${SYNC} \"$SRCROOT/userdata\" \t\"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\n\n# copy extra packages if applicable\nif [ -d \"$SRCROOT/extras/system\" ]; then\n\t${SYNC} \"$SRCROOT/extras/system/\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC\"\nfi\n\n# copy extra user packages if applicable\nif [ -d \"$SRCROOT/extras/user\" ]; then\n\t${SYNC} \"$SRCROOT/extras/user/\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/extras/user\"\nfi\n\n\n\n# magic that gets the icon to update\ntouch \"$TARGET_BUILD_DIR/$TARGET_NAME\"\n\n# not sure we want to do this with out major testing, many scripts cannot handle the spaces in the app name\n#mv \"$TARGET_BUILD_DIR/$TARGET_NAME\" \"$TARGET_BUILD_DIR/XBMC Media Center.app\"\n\nfi";
 		};
 		F5A1CBDF0F6B0B4700A96ABD /* copy frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -7425,7 +7444,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/MacOS\"\nmkdir -p \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources\"\n\ncp -f \"$TARGET_BUILD_DIR/XBMC\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/MacOS/\"\ncp -f \"$SRCROOT/media/xbmc.icns\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/\"\ncp -f \"$SRCROOT/xbmc/osx/Info.plist\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/\"\n\n# start clean so we don't keep old dylibs\nrm -f \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/*\"\n\n# Copy all of XBMC's dynamic dependencies and rename their locations to inside the Framework\nfor a in $(otool -L \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/MacOS/XBMC\"  | grep opt | awk ' { print $1 } ') ; do \n\techo \"Processing $a\"\n\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\tinstall_name_tool -change \"$a\" @executable_path/../Frameworks/$(basename $a) \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/MacOS/XBMC\"\ndone\n\nREWIND=\"1\"\n# Copy all the *osx.so dynamic dependencies and rename their locations to inside the Framework\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in $(find \"$TARGET_BUILD_DIR/$TARGET_NAME\"/Contents/Resources/XBMC/system -name \"*.so\" -print) ; do\n\t\techo \"Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep opt | awk ' { print $1 } ') ; do\n\t\t\techo \"    Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\" ]; then\n\t\t\t\techo \"        Copying $a to Frameworks\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\t\t\t\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"@executable_path/../Frameworks/$(basename $a)\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/system/$(basename $b)\"\n\t\tdone \n\tdone\ndone\n\nREWIND=\"1\"\n# Copy all the system/python/Lib/*.so dynamic dependencies and rename their locations to inside the Framework\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in $(find \"$TARGET_BUILD_DIR/$TARGET_NAME\"/Contents/Resources/XBMC/system/python/Lib -name \"*.so\" -print) ; do\n\t\techo \"Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep opt | awk ' { print $1 } ') ; do\n\t\t\techo \"    Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\" ]; then\n\t\t\t\techo \"        Copying $a to Frameworks\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\t\t\t\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"@executable_path/../Frameworks/$(basename $a)\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Resources/XBMC/system/python/Lib/$(basename $b)\"\n\t\tdone \n\tdone\ndone\n\nREWIND=\"1\"\n# Copy all the addon/*.so dynamic dependencies and rename their locations to inside the Framework\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in $(find \"$TARGET_BUILD_DIR/$TARGET_NAME\"/Contents/Resources/XBMC/addons -name \"*.so\" -print) ; do\n\t\techo \"Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep opt | awk ' { print $1 } ') ; do\n\t\t\techo \"    Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\" ]; then\n\t\t\t\techo \"        Copying $a to Frameworks\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\t\t\t\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"@executable_path/../Frameworks/$(basename $a)\" \"$b\"\n\t\tdone \n\tdone\ndone\n\nREWIND=\"1\"\n# Copy all the addon/*.xbs dynamic dependencies and rename their locations to inside the Framework\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in $(find \"$TARGET_BUILD_DIR/$TARGET_NAME\"/Contents/Resources/XBMC/addons -name \"*.xbs\" -print) ; do\n\t\techo \"Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep opt | awk ' { print $1 } ') ; do\n\t\t\techo \"    Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\" ]; then\n\t\t\t\techo \"        Copying $a to Frameworks\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\t\t\t\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"@executable_path/../Frameworks/$(basename $a)\" \"$b\"\n\t\tdone \n\tdone\ndone\n\nREWIND=\"1\"\n# Copy all the dynamic dependencies and rename their locations to inside the Framework\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/\"*dylib ; do\n\t\techo \"Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep opt | awk ' { print $1 } ') ; do\n\t\t\techo \"    Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\" ]; then\n\t\t\t\techo \"        Copying $a to Frameworks\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks\"\n\t\t\t\tchmod u+w \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"@executable_path/../Frameworks/$(basename $a)\" \"$TARGET_BUILD_DIR/$TARGET_NAME/Contents/Frameworks/$(basename $b)\"\n\t\tdone \n\tdone\ndone\n\n";
+			shellScript = "#set -x\n\nfunction check_dyloaded_depends\n{\n  b=$(find \"$EXTERNAL_LIBS\" -name $1 -print)\n  if [ -f \"$b\" ]; then\n    #echo \"Processing $b\"\n    if [ ! -f  \"$TARGET_FRAMEWORKS/$(basename $b)\" ]; then\n      echo \"    Packaging $b\"\n      cp -f \"$b\" \"$TARGET_FRAMEWORKS/\"\n      chmod u+w \"$TARGET_FRAMEWORKS/$(basename $b)\"\n    fi\n    for a in $(otool -L \"$b\"  | grep \"$EXTERNAL_LIBS\" | awk ' { print $1 } ') ; do\n      if [ -f \"$a\" ]; then\n        if [ ! -f  \"$TARGET_FRAMEWORKS/$(basename $a)\" ]; then\n          echo \"    Packaging $a\"\n          cp -f \"$a\" \"$TARGET_FRAMEWORKS/\"\n          chmod u+w \"$TARGET_FRAMEWORKS/$(basename $a)\"\n          install_name_tool -change \"$a\" \"$DYLIB_NAMEPATH/$(basename $a)\" \"$TARGET_FRAMEWORKS/$(basename $b)\"\n        fi\n      fi\n    done \n  fi\n}\n\nfunction check_xbmc_dylib_depends\n{\n  REWIND=\"1\"\n  while [ $REWIND = \"1\" ]\n  do\n    let REWIND=\"0\"\n    for b in $(find \"$1\" -name \"$2\" -print) ; do\n      #echo \"Processing $b\"\n      for a in $(otool -L \"$b\"  | grep \"$EXTERNAL_LIBS\" | awk ' { print $1 } ') ; do\n        #echo \"    Packaging $a\"\n        if [ ! -f  \"$TARGET_FRAMEWORKS/$(basename $a)\" ]; then\n          echo \"    Packaging $a\"\n          cp -f \"$a\" \"$TARGET_FRAMEWORKS/\"\n          chmod u+w \"$TARGET_FRAMEWORKS/$(basename $a)\"\n          let REWIND=\"1\"\n        fi\n        install_name_tool -change \"$a\" \"$DYLIB_NAMEPATH/$(basename $a)\" \"$b\"\n      done\n    done\n  done\n}\n\nEXTERNAL_LIBS=/Users/Shared/xbmc-depends/osx-10.4_ppc\n\nTARGET_NAME=$PRODUCT_NAME\nTARGET_CONTENTS=$TARGET_BUILD_DIR/$TARGET_NAME/Contents\n\nTARGET_BINARY=$TARGET_CONTENTS/MacOS/XBMC\nTARGET_FRAMEWORKS=$TARGET_CONTENTS/Frameworks\nDYLIB_NAMEPATH=@executable_path/../Frameworks\nXBMC_HOME=$TARGET_CONTENTS/Resources/XBMC\n\nmkdir -p \"$TARGET_CONTENTS/MacOS\"\nmkdir -p \"$TARGET_CONTENTS/Resources\"\n# start clean so we don't keep old dylibs\nrm -rf \"$TARGET_CONTENTS/Frameworks\"\nmkdir -p \"$TARGET_CONTENTS/Frameworks\"\n\necho \"Package $TARGET_BUILD_DIR/XBMC\"\ncp -f \"$TARGET_BUILD_DIR/XBMC\" \"$TARGET_BINARY\"\ncp -f \"$SRCROOT/media/xbmc.icns\" \"$TARGET_CONTENTS/Resources/\"\ncp -f \"$SRCROOT/xbmc/osx/Info.plist\" \"$TARGET_CONTENTS/\"\n\n# Copy all of XBMC's dylib dependencies and rename their locations to inside the Framework\necho \"Checking $TARGET_BINARY dylib dependencies\"\nfor a in $(otool -L \"$TARGET_BINARY\"  | grep \"$EXTERNAL_LIBS\" | awk ' { print $1 } ') ; do \n\techo \"    Packaging $a\"\n\tcp -f \"$a\" \"$TARGET_FRAMEWORKS/\"\n\tchmod u+w \"$TARGET_FRAMEWORKS/$(basename $a)\"\n\tinstall_name_tool -change \"$a\" \"$DYLIB_NAMEPATH/$(basename $a)\" \"$TARGET_BINARY\"\ndone\n\necho \"Package $EXTERNAL_LIBS/lib/python2.6\"\nmkdir -p \"$TARGET_CONTENTS/Frameworks/lib\"\nPYTHONSYNC=\"rsync -aq --exclude .DS_Store --exclude *.a --exclude *.exe --exclude test --exclude tests\"\n${PYTHONSYNC} \"$EXTERNAL_LIBS/lib/python2.6\" \"$TARGET_FRAMEWORKS/lib/\"\nrm -rf \"$TARGET_FRAMEWORKS/lib/python2.6/config\"\n\necho \"Checking $TARGET_FRAMEWORKS/lib/python2.6 *.so for dylib dependencies\"\ncheck_xbmc_dylib_depends \"$TARGET_FRAMEWORKS\"/lib/python2.6 \"*.so\"\n\necho \"Checking $XBMC_HOME/system *.so for dylib dependencies\"\ncheck_xbmc_dylib_depends \"$XBMC_HOME\"/system \"*.so\"\n\necho \"Checking $XBMC_HOME/addons *.so for dylib dependencies\"\ncheck_xbmc_dylib_depends \"$XBMC_HOME\"/addons \"*.so\"\n\necho \"Checking $XBMC_HOME/addons *.xbs for dylib dependencies\"\ncheck_xbmc_dylib_depends \"$XBMC_HOME\"/addons \"*.xbs\"\n\necho \"Checking xbmc/DllPaths_generated.h for dylib dependencies\"\nfor a in $(grep .dylib \"$SRCROOT\"/xbmc/DllPaths_generated.h | awk '{print $3}' | sed s/\\\"//g) ; do\n  check_dyloaded_depends $a\ndone\n\necho \"Checking $TARGET_FRAMEWORKS for missing dylib dependencies\"\nREWIND=\"1\"\nwhile [ $REWIND = \"1\" ]\ndo\n\tlet REWIND=\"0\"\n\tfor b in \"$TARGET_FRAMEWORKS/\"*dylib* ; do\n\t\t#echo \"  Processing $b\"\n\t\tfor a in $(otool -L \"$b\"  | grep \"$EXTERNAL_LIBS\" | awk ' { print $1 } ') ; do\n\t\t\t#echo \"Processing $a\"\n\t\t\tif [ ! -f  \"$TARGET_FRAMEWORKS/$(basename $a)\" ]; then\n\t\t\t\techo \"    Packaging $a\"\n\t\t\t\tcp -f \"$a\" \"$TARGET_FRAMEWORKS/\"\n\t\t\t\tchmod u+w \"$TARGET_FRAMEWORKS/$(basename $a)\"\n\t\t\t\tlet REWIND=\"1\"\n\t\t\tfi\n\t\t\tinstall_name_tool -change \"$a\" \"$DYLIB_NAMEPATH/$(basename $a)\" \"$TARGET_FRAMEWORKS/$(basename $b)\"\n\t\tdone \n\tdone\ndone\n";
 		};
 		F5A1CBE00F6B0B4700A96ABD /* update version info */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -7535,7 +7554,6 @@
 				E38E1FAE0D25F9FD00618676 /* DVDSubtitleParserSubrip.cpp in Sources */,
 				E38E1FAF0D25F9FD00618676 /* DVDSubtitleStream.cpp in Sources */,
 				E38E1FC10D25F9FD00618676 /* ADPCMCodec.cpp in Sources */,
-				E38E1FC30D25F9FD00618676 /* AIFFcodec.cpp in Sources */,
 				E38E1FC50D25F9FD00618676 /* AudioDecoder.cpp in Sources */,
 				E38E1FC60D25F9FD00618676 /* CDDAcodec.cpp in Sources */,
 				E38E1FC70D25F9FD00618676 /* CodecFactory.cpp in Sources */,
@@ -8006,7 +8024,6 @@
 				E46F7C2D0F77219700C25D29 /* ZeroconfOSX.cpp in Sources */,
 				83E0B2490F7C95FF0091643F /* Atomics.cpp in Sources */,
 				E43196170FB2382E0030E150 /* HTSPDirectory.cpp in Sources */,
-				E43196180FB2382E0030E150 /* HTSPSession.cpp in Sources */,
 				F5AACA680FB3DE2D00DBB77C /* GUIDialogSelect.cpp in Sources */,
 				F5AACA970FB3E2B800DBB77C /* GUIDialogSlider.cpp in Sources */,
 				F59876BC0FBA34C0008EF4FB /* DVDPlayerAudioResampler.cpp in Sources */,
@@ -8326,7 +8343,6 @@
 				C8F371CB132A502400E903AE /* EpgDatabase.cpp in Sources */,
 				C8F371CC132A502400E903AE /* EpgInfoTag.cpp in Sources */,
 				C8F371CD132A502400E903AE /* EpgSearchFilter.cpp in Sources */,
-				C8F371D1132A504500E903AE /* AddonHelpers_PVR.cpp in Sources */,
 				C8F37227132A505B00E903AE /* PVRClient.cpp in Sources */,
 				C8F37229132A505B00E903AE /* PVRChannel.cpp in Sources */,
 				C8F3722A132A505B00E903AE /* PVRChannelGroup.cpp in Sources */,
@@ -8361,12 +8377,8 @@
 				C8F3724C132A505B00E903AE /* GUIWindowPVRRecordings.cpp in Sources */,
 				C8F3724D132A505B00E903AE /* GUIWindowPVRSearch.cpp in Sources */,
 				C8F3724E132A505B00E903AE /* GUIWindowPVRTimers.cpp in Sources */,
-				C8F3726B132A529A00E903AE /* GUIEPGGridContainer.cpp in Sources */,
 				C8F37270132A52C400E903AE /* PVRDirectory.cpp in Sources */,
 				C8F37275132A52F000E903AE /* TextSearch.cpp in Sources */,
-				C8F3727C132A534D00E903AE /* AddonHelpers_Addon.cpp in Sources */,
-				C8F3727D132A534D00E903AE /* AddonHelpers_GUI.cpp in Sources */,
-				C8F3727E132A534D00E903AE /* AddonHelpers_local.cpp in Sources */,
 				C8F37283132A538400E903AE /* GUIDialogExtendedProgressBar.cpp in Sources */,
 				C8F37286132A53BD00E903AE /* DVDDemuxPVRClient.cpp in Sources */,
 				C8F3728B132A53E700E903AE /* PVRFile.cpp in Sources */,
@@ -8394,6 +8406,15 @@
 				384718D81325BA04000486D6 /* XBDateTime.cpp in Sources */,
 				18ACF84313596C9B00B67371 /* RecentlyAddedJob.cpp in Sources */,
 				C807114D135DB5CC002F601B /* InputOperations.cpp in Sources */,
+				C8EC5D0E1369519D00CCC10D /* XBMC_keytable.cpp in Sources */,
+				180184C713743E4C0048F7F2 /* GUIEPGGridContainer.cpp in Sources */,
+				180184CF13743F090048F7F2 /* PVRClients.cpp in Sources */,
+				180184D513743F470048F7F2 /* PVRGUIInfo.cpp in Sources */,
+				180184DF137440990048F7F2 /* AddonCallbacks.cpp in Sources */,
+				180184E0137440990048F7F2 /* AddonCallbacksGUI.cpp in Sources */,
+				180184E5137440BA0048F7F2 /* AddonCallbacksAddon.cpp in Sources */,
+				180184EA137440D90048F7F2 /* AddonCallbacksPVR.cpp in Sources */,
+				18018537137467810048F7F2 /* HTSPSession.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -8473,7 +8494,6 @@
 				F5A1C9130F6B06CF00A96ABD /* DVDSubtitleParserSubrip.cpp in Sources */,
 				F5A1C9140F6B06CF00A96ABD /* DVDSubtitleStream.cpp in Sources */,
 				F5A1C9190F6B06CF00A96ABD /* ADPCMCodec.cpp in Sources */,
-				F5A1C91B0F6B06CF00A96ABD /* AIFFcodec.cpp in Sources */,
 				F5A1C91D0F6B06CF00A96ABD /* AudioDecoder.cpp in Sources */,
 				F5A1C91E0F6B06CF00A96ABD /* CDDAcodec.cpp in Sources */,
 				F5A1C91F0F6B06CF00A96ABD /* CodecFactory.cpp in Sources */,
@@ -8944,7 +8964,6 @@
 				F5A2BD0F0F7AD92C0006ABA0 /* Zeroconf.cpp in Sources */,
 				83E0B24A0F7C95FF0091643F /* Atomics.cpp in Sources */,
 				E43196190FB2382E0030E150 /* HTSPDirectory.cpp in Sources */,
-				E431961A0FB2382E0030E150 /* HTSPSession.cpp in Sources */,
 				F5AACA690FB3DE2D00DBB77C /* GUIDialogSelect.cpp in Sources */,
 				F5AACA980FB3E2B800DBB77C /* GUIDialogSlider.cpp in Sources */,
 				F59876BD0FBA34C0008EF4FB /* DVDPlayerAudioResampler.cpp in Sources */,
@@ -9273,6 +9292,13 @@
 				F5AE40B313415D9E0004BD79 /* SystemOperations.cpp in Sources */,
 				F5AE40B413415D9E0004BD79 /* VideoLibrary.cpp in Sources */,
 				F5AE40B513415D9E0004BD79 /* XBMCOperations.cpp in Sources */,
+				43EA4276136C04D9002C82A5 /* XBDateTime.cpp in Sources */,
+				43EA4279136C079A002C82A5 /* JSONServiceDescription.cpp in Sources */,
+				43EA427E136C07BF002C82A5 /* XBMC_keytable.cpp in Sources */,
+				43EA4282136C0806002C82A5 /* RecentlyAddedJob.cpp in Sources */,
+				43EA4297136C1D9E002C82A5 /* RenderCapture.cpp in Sources */,
+				43EA429B136C1E2F002C82A5 /* xbmcvfsmodule.cpp in Sources */,
+				43EA42B0136C2274002C82A5 /* InputOperations.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -9530,6 +9556,7 @@
 				ARCHS = ppc;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_AUTO_VECTORIZATION = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -9553,59 +9580,62 @@
 					HAS_SPC_CODEC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = 4.0;
 				GENERATE_PROFILING_CODE = NO;
 				HEADER_SEARCH_PATHS = (
-					xbmc/osx,
 					$SRCROOT,
-					lib,
 					xbmc,
-					lib/ffmpeg,
+					xbmc/osx,
 					xbmc/linux,
 					xbmc/cores/dvdplayer,
-					"lib/darwin/libcurl-OSX/include",
+					lib,
+					lib/ffmpeg,
+					$XBMC_DEPENDS/include,
+					$XBMC_DEPENDS/include/mysql,
+					$XBMC_DEPENDS/include/freetype2,
+					$XBMC_DEPENDS/include/python2.6,
 				);
-				INFOPLIST_FILE = "/Users/Shared/xbmc/xbmc_svn/xbmc/osx/Info copy.plist";
+				INFOPLIST_FILE = $SRCROOT/xbmc/osx/Info.plist;
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
-					lib/libRTV,
-					lib/libXBMS,
-					lib/libXDAAP,
-					lib/cmyth/libcmyth,
-					lib/cmyth/librefmem,
-					lib/libapetag/.libs,
-					lib/libsquish,
-					lib/jsoncpp/src/lib_json,
-					"xbmc/interfaces/http-api",
-					"xbmc/interfaces/json-rpc",
-					/opt/local/lib,
-					/opt/local/lib/mysql5/mysql,
-					/opt/local/lib/samba3,
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_4)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_5)",
-					"\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"",
-					"\"$(SRCROOT)\"",
-					"\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib/mysql\"",
-					"\"$(SRCROOT)/lib/libsquish\"",
-					"\"$(SRCROOT)/lib/libRTV\"",
-					"\"$(SRCROOT)/lib/libXBMS\"",
-					"\"$(SRCROOT)/lib/libXDAAP\"",
+					"$(SRCROOT)",
+					"$(SRCROOT)/lib/libRTV",
+					"$(SRCROOT)/lib/libXDAAP",
+					"$(SRCROOT)/lib/cmyth/libcmyth",
+					"$(SRCROOT)/lib/cmyth/librefmem",
+					"$(SRCROOT)/lib/libapetag/.libs",
+					"$(SRCROOT)/lib/libsquish",
+					"$(SRCROOT)/lib/jsoncpp/src/lib_json",
+					"$(SRCROOT)/xbmc/interfaces/http-api",
+					"$(SRCROOT)/xbmc/interfaces/json-rpc",
 				);
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../xbmc-depends/ios-4.2_arm7/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)/../../xbmc-depends/ios-4.2_arm7/lib/mysql\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_4 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_5 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				OTHER_LDFLAGS = (
 					"-headerpad_max_install_names",
 					"-all_load",
+					"-L$XBMC_DEPENDS/lib",
+					"-llzo2",
+					"-lpcre",
+					"-lpcrecpp",
+					"-lfribidi",
+					"-lcdio",
+					"-lfreetype",
+					"-lfontconfig",
+					"-lsqlite3",
+					"-lsamplerate",
+					"-lmicrohttpd",
+					"-lGLEW",
+					"-lSDL",
+					"-lSDL_mixer",
+					"-lsmbclient",
+					"-lpython2.6",
+					"-L$XBMC_DEPENDS/lib/mysql",
+					"-lmysqlclient",
 				);
 				PRODUCT_NAME = XBMC;
-				USER_HEADER_SEARCH_PATHS = ". /opt/local/include /opt/local/include/freetype2 /opt/local/include/mysql5 /opt/local/include/glib-2.0 /opt/local/lib/glib-2.0/include /usr/X11R6/include";
+				USER_HEADER_SEARCH_PATHS = "$XBMC_DEPENDS/include $XBMC_DEPENDS/include/mysql $XBMC_DEPENDS/include/freetype2 $XBMC_DEPENDS/include/python2.6";
 				VALID_ARCHS = ppc;
+				XBMC_DEPENDS = "/Users/Shared/xbmc-depends/osx-10.4_ppc";
 				ZERO_LINK = NO;
 			};
 			name = Debug;
@@ -9616,7 +9646,7 @@
 				ARCHS = ppc;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEBUG_INFORMATION_FORMAT = dwarf;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_AUTO_VECTORIZATION = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -9641,58 +9671,61 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_UNROLL_LOOPS = YES;
+				GCC_VERSION = 4.0;
 				HEADER_SEARCH_PATHS = (
-					xbmc/osx,
 					$SRCROOT,
-					lib,
 					xbmc,
-					lib/ffmpeg,
+					xbmc/osx,
 					xbmc/linux,
 					xbmc/cores/dvdplayer,
-					"lib/darwin/libcurl-OSX/include",
+					lib,
+					lib/ffmpeg,
+					$XBMC_DEPENDS/include,
+					$XBMC_DEPENDS/include/mysql,
+					$XBMC_DEPENDS/include/freetype2,
+					$XBMC_DEPENDS/include/python2.6,
 				);
-				INFOPLIST_FILE = "/Users/Shared/xbmc/xbmc_svn/xbmc/osx/Info copy.plist";
+				INFOPLIST_FILE = $SRCROOT/xbmc/osx/Info.plist;
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
-					lib/libRTV,
-					lib/libXBMS,
-					lib/libXDAAP,
-					lib/cmyth/libcmyth,
-					lib/cmyth/librefmem,
-					lib/libapetag/.libs,
-					lib/libsquish,
-					lib/jsoncpp/src/lib_json,
-					"xbmc/interfaces/http-api",
-					"xbmc/interfaces/json-rpc",
-					/opt/local/lib,
-					/opt/local/lib/mysql5/mysql,
-					/opt/local/lib/samba3,
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_4)",
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_5)",
-					"\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"",
-					"\"$(SRCROOT)\"",
-					"\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib/mysql\"",
-					"\"$(SRCROOT)/lib/libsquish\"",
-					"\"$(SRCROOT)/lib/libRTV\"",
-					"\"$(SRCROOT)/lib/libXBMS\"",
-					"\"$(SRCROOT)/lib/libXDAAP\"",
+					"$(SRCROOT)",
+					"$(SRCROOT)/lib/libRTV",
+					"$(SRCROOT)/lib/libXDAAP",
+					"$(SRCROOT)/lib/cmyth/libcmyth",
+					"$(SRCROOT)/lib/cmyth/librefmem",
+					"$(SRCROOT)/lib/libapetag/.libs",
+					"$(SRCROOT)/lib/libsquish",
+					"$(SRCROOT)/lib/jsoncpp/src/lib_json",
+					"$(SRCROOT)/xbmc/interfaces/http-api",
+					"$(SRCROOT)/xbmc/interfaces/json-rpc",
 				);
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../xbmc-depends/ios-4.2_arm7/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)/../../xbmc-depends/ios-4.2_arm7/lib/mysql\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_4 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_5 = "\"$(SRCROOT)/../../xbmc-depends/osx-10.4_i386/lib\"";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				OTHER_LDFLAGS = (
 					"-headerpad_max_install_names",
 					"-all_load",
+					"-L$XBMC_DEPENDS/lib",
+					"-llzo2",
+					"-lpcre",
+					"-lpcrecpp",
+					"-lfribidi",
+					"-lcdio",
+					"-lfreetype",
+					"-lfontconfig",
+					"-lsqlite3",
+					"-lsamplerate",
+					"-lmicrohttpd",
+					"-lGLEW",
+					"-lSDL",
+					"-lSDL_mixer",
+					"-lsmbclient",
+					"-lpython2.6",
+					"-L$XBMC_DEPENDS/lib/mysql",
+					"-lmysqlclient",
 				);
 				PRODUCT_NAME = XBMC;
-				USER_HEADER_SEARCH_PATHS = ". /opt/local/include /opt/local/include/freetype2 /opt/local/include/mysql5 /opt/local/include/glib-2.0 /opt/local/lib/glib-2.0/include /usr/X11R6/include";
+				USER_HEADER_SEARCH_PATHS = "$XBMC_DEPENDS/include $XBMC_DEPENDS/include/mysql $XBMC_DEPENDS/include/freetype2 $XBMC_DEPENDS/include/python2.6";
 				VALID_ARCHS = ppc;
+				XBMC_DEPENDS = "/Users/Shared/xbmc-depends/osx-10.4_ppc";
 				ZERO_LINK = NO;
 			};
 			name = Release;

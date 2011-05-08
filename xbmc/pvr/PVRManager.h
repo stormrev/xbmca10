@@ -46,7 +46,7 @@ namespace PVR
   #define g_PVRRecordings    g_PVRManager.Recordings()
   #define g_PVRClients       g_PVRManager.Clients()
 
-  class CPVRManager : public Observer, private CThread, public IJobCallback
+  class CPVRManager : public Observer, private CThread
   {
     friend class CPVRClients;
 
@@ -148,6 +148,13 @@ namespace PVR
      * @return The requested boolean or false if it wasn't found.
      */
     bool TranslateBoolInfo(DWORD dwInfo) const;
+
+    /*!
+     * @brief Show the player info.
+     * @param iTimeout Hide the player info after iTimeout seconds.
+     * @todo not really the right place for this :-)
+     */
+    void ShowPlayerInfo(int iTimeout);
 
     /*!
      * @brief Reset the TV database to it's initial state and delete all the data inside.
@@ -334,13 +341,6 @@ namespace PVR
     void UpdateCurrentFile(void);
 
     /*!
-     * @brief Update the data in a pvr window if that window is currently visible.
-     * @param window The window to update.
-     * @param bResetContents True to reset the contents of the given window, false to just mark all the window's items invalid.
-     */
-    void UpdateWindow(PVRWindow window, bool bResetContents = true);
-
-    /*!
      * @brief Check whether names are still correct after the language settings changed.
      */
     void LocalizationChanged(void);
@@ -391,8 +391,6 @@ namespace PVR
      */
     bool IsSelectedGroup(const CPVRChannelGroup &group) const;
 
-    bool IsUpdating(void) const;
-
   protected:
     /*!
      * @brief PVR update and control thread.
@@ -440,9 +438,11 @@ namespace PVR
     //!{
     const char *CharInfoNowRecordingTitle(void);
     const char *CharInfoNowRecordingChannel(void);
+    const char *CharInfoNowRecordingChannelIcon(void);
     const char *CharInfoNowRecordingDateTime(void);
     const char *CharInfoNextRecordingTitle(void);
     const char *CharInfoNextRecordingChannel(void);
+    const char *CharInfoNextRecordingChannelIcon(void);
     const char *CharInfoNextRecordingDateTime(void);
     const char *CharInfoNextTimer(void);
     const char *CharInfoPlayingDuration(void);
@@ -503,13 +503,9 @@ namespace PVR
      */
     void ShowBusyDialog(bool bShow);
 
-    void StartRecordingsUpdateJob(void);
-    void StartTimersUpdateJob(void);
-    void StartChannelsUpdateJob(void);
-    void StartChannelGroupsUpdateJob(void);
-    void StartNextPendingJob(void);
+    void ExecutePendingJobs(void);
 
-    void OnJobComplete(unsigned int jobID, bool success, CJob* job);
+    bool IsJobPending(const char *strJobName) const;
 
     /** @name containers */
     //@{
@@ -522,14 +518,9 @@ namespace PVR
     //@}
 
     CCriticalSection                m_critSectionTriggers;         /*!< critical section for triggered updates */
-    bool                            m_bRecordingsUpdating;         /*!< true when recordings are being updated */
-    bool                            m_bRecordingsUpdatePending;    /*!< true when another recordings update will be performed after the last one finished */
-    bool                            m_bTimersUpdating;             /*!< true when timers are being updated */
-    bool                            m_bTimersUpdatePending;        /*!< true when another timers update will be performed after the last one finished */
-    bool                            m_bChannelsUpdating;           /*!< true when channels are being updated */
-    bool                            m_bChannelsUpdatePending;      /*!< true when another channels update will be performed after the last one finished */
-    bool                            m_bChannelGroupsUpdating;      /*!< true when channel groups are being updated */
-    bool                            m_bChannelGroupsUpdatePending; /*!< true when another channel groups update will be performed after the last one finished */
+    HANDLE                          m_triggerEvent;                /*!< triggers an update */
+    std::vector<CJob *>             m_pendingUpdates;              /*!< vector of pending pvr updates */
+
     CFileItem *                     m_currentFile;                 /*!< the PVR file that is currently playing */
     CPVRDatabase *                  m_database;                    /*!< the database for all PVR related data */
     CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */

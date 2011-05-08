@@ -1228,7 +1228,7 @@ bool CApplication::Initialize()
   return true;
 }
 
-void CApplication::StartWebServer()
+bool CApplication::StartWebServer()
 {
 #ifdef HAS_WEB_SERVER
   if (g_guiSettings.GetBool("services.webserver") && m_network.IsAvailable())
@@ -1239,12 +1239,14 @@ void CApplication::StartWebServer()
     if (webPort < 1024 && geteuid() != 0)
     {
         CLog::Log(LOGERROR, "Cannot start Web Server as port is smaller than 1024 and user is not root");
-        return;
+        return false;
     }
 #endif
 
+    bool started = false;
     if (m_WebServer.Start(webPort, g_guiSettings.GetString("services.webserverusername"), g_guiSettings.GetString("services.webserverpassword")))
     {
+      started = true;
       // publish web frontend and API services
 #ifdef HAS_WEB_INTERFACE
       CZeroconf::GetInstance()->PublishService("servers.webserver", "_http._tcp", "XBMC Web Server", webPort);
@@ -1260,8 +1262,12 @@ void CApplication::StartWebServer()
     if (g_settings.m_HttpApiBroadcastLevel >= 1)
       getApplicationMessenger().HttpApi("broadcastlevel; StartUp;1");
 #endif
+
+    return started;
   }
 #endif
+
+  return true;
 }
 
 void CApplication::StopWebServer()
@@ -1283,7 +1289,7 @@ void CApplication::StopWebServer()
 #endif
 }
 
-void CApplication::StartJSONRPCServer()
+bool CApplication::StartJSONRPCServer()
 {
 #ifdef HAS_JSONRPC
   if (g_guiSettings.GetBool("services.esenabled"))
@@ -1291,9 +1297,16 @@ void CApplication::StartJSONRPCServer()
     CJSONRPC::Initialize();
 
     if (CTCPServer::StartServer(g_advancedSettings.m_jsonTcpPort, g_guiSettings.GetBool("services.esallinterfaces")))
+    {
       CZeroconf::GetInstance()->PublishService("servers.jsonrpc", "_xbmc-jsonrpc._tcp", "XBMC JSONRPC", g_advancedSettings.m_jsonTcpPort);
+      return true;
+    }
+    else
+      return false;
   }
 #endif
+
+  return true;
 }
 
 void CApplication::StopJSONRPCServer(bool bWait)
@@ -1323,21 +1336,23 @@ void CApplication::StopUPnP(bool bWait)
 #endif
 }
 
-void CApplication::StartEventServer()
+bool CApplication::StartEventServer()
 {
 #ifdef HAS_EVENT_SERVER
   CEventServer* server = CEventServer::GetInstance();
   if (!server)
   {
     CLog::Log(LOGERROR, "ES: Out of memory");
-    return;
+    return false;
   }
   if (g_guiSettings.GetBool("services.esenabled"))
   {
     CLog::Log(LOGNOTICE, "ES: Starting event server");
     server->StartServer();
+    return true;
   }
 #endif
+  return true;
 }
 
 bool CApplication::StopEventServer(bool bWait, bool promptuser)
@@ -1896,7 +1911,7 @@ void CApplication::RenderNoPresent()
     m_guiPointer.Render();
 
   // reset image scaling and effect states
-  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetVideoResolution(), false);
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
   RenderMemoryStatus();
   RenderScreenSaver();
@@ -2158,7 +2173,7 @@ void CApplication::RenderMemoryStatus()
 
   // reset the window scaling and fade status
   RESOLUTION res = g_graphicsContext.GetVideoResolution();
-  g_graphicsContext.SetRenderingResolution(res, false);
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
   static int yShift = 20;
   static int xShift = 40;
@@ -2224,7 +2239,7 @@ void CApplication::RenderMemoryStatus()
       g_graphicsContext.SetScalingResolution(window->GetCoordsRes(), true);
       point.x *= g_graphicsContext.GetGUIScaleX();
       point.y *= g_graphicsContext.GetGUIScaleY();
-      g_graphicsContext.SetRenderingResolution(res, false);
+      g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
     }
     info.AppendFormat("Mouse: (%d,%d)  ", (int)point.x, (int)point.y);
     if (window)
@@ -3718,7 +3733,10 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
       {
         options.starttime = 0.0f;
         CBookmark bookmark;
-        if(dbs.GetResumeBookMark(item.m_strPath, bookmark))
+        CStdString path = item.m_strPath;
+        if (item.IsDVD()) 
+          path = item.GetVideoInfoTag()->m_strFileNameAndPath;
+        if(dbs.GetResumeBookMark(path, bookmark))
         {
           options.starttime = bookmark.timeInSeconds;
           options.state = bookmark.playerState;

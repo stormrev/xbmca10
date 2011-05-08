@@ -63,6 +63,7 @@ CPVRManager::CPVRManager(void)
   m_recordings    = new CPVRRecordings;
   m_timers        = new CPVRTimers;
   m_guiInfo       = new CPVRGUIInfo;
+  m_triggerEvent  = CreateEvent(NULL, TRUE, TRUE, NULL);
 
   ResetProperties();
 }
@@ -78,6 +79,9 @@ CPVRManager::~CPVRManager(void)
   delete m_addons;
   delete m_guiInfo;
   delete m_database;
+
+  if (m_triggerEvent)
+    CloseHandle(m_triggerEvent);
 
   CLog::Log(LOGDEBUG,"PVRManager - destroyed");
 }
@@ -130,11 +134,11 @@ void CPVRManager::Stop(void)
   StopUpdateThreads();
 
   /* unload all data */
-  m_epg->RemoveObserver(this);
-  m_epg->Unload();
+  m_epg->UnregisterObserver(this);
 
   m_recordings->Unload();
   m_timers->Unload();
+  m_epg->Unload();
   m_channelGroups->Unload();
   m_addons->Unload();
 }
@@ -157,7 +161,7 @@ bool CPVRManager::StartUpdateThreads(void)
 void CPVRManager::StopUpdateThreads(void)
 {
   StopThread();
-  m_epg->RemoveObserver(this);
+  m_epg->UnregisterObserver(this);
   m_epg->Stop();
   m_guiInfo->Stop();
   m_addons->Stop();
@@ -228,10 +232,15 @@ void CPVRManager::Process(void)
     return;
   }
 
+  /* reset observers that are observing pvr related data in the pvr windows, or updates won't work after a reload */
+  CGUIWindowPVR *pWindow = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
+  if (pWindow)
+    pWindow->Reset();
+
   /* start the other pvr related update threads */
   m_addons->Start();
   m_guiInfo->Start();
-  m_epg->AddObserver(this);
+  m_epg->RegisterObserver(this);
   m_epg->Start();
 
   /* continue last watched channel after first startup */
@@ -242,9 +251,12 @@ void CPVRManager::Process(void)
   ShowBusyDialog(false);
 
   /* signal to window that clients are loaded */
-  CGUIWindowPVR *pWindow = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
   if (pWindow)
     pWindow->UnlockWindow();
+
+  /* check whether all channel icons are cached */
+  m_channelGroups->GetGroupAllRadio()->CacheIcons();
+  m_channelGroups->GetGroupAllTV()->CacheIcons();
 
   CLog::Log(LOGDEBUG, "PVRManager - %s - entering main loop", __FUNCTION__);
 
@@ -255,6 +267,9 @@ void CPVRManager::Process(void)
     if (!m_addons->AllClientsLoaded())
       m_addons->TryLoadClients(1);
 
+    /* execute the next pending jobs if there are any */
+    ExecutePendingJobs();
+
     /* check if the (still) are any enabled addons */
     if (DisableIfNoClients())
     {
@@ -263,7 +278,7 @@ void CPVRManager::Process(void)
       return;
     }
 
-    Sleep(1000);
+    WaitForSingleObject(m_triggerEvent, 1000);
   }
 
 }
@@ -331,14 +346,6 @@ bool CPVRManager::ContinueLastChannel(void)
   return bReturn;
 }
 
-void CPVRManager::UpdateWindow(PVRWindow window, bool bResetContents /* = true */)
-{
-  /* TODO use an observable for this! */
-  CGUIWindowPVR *pWindow = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
-  if (pWindow)
-    pWindow->UpdateWindow(window, bResetContents);
-}
-
 void CPVRManager::ResetProperties(void)
 {
   m_currentFile           = NULL;
@@ -349,14 +356,9 @@ void CPVRManager::ResetProperties(void)
   m_PreviousChannelIndex  = 0;
   m_LastChannel           = 0;
 
-  m_bRecordingsUpdating         = false;
-  m_bRecordingsUpdatePending    = false;
-  m_bTimersUpdating             = false;
-  m_bTimersUpdatePending        = false;
-  m_bChannelGroupsUpdating      = false;
-  m_bChannelGroupsUpdatePending = false;
-  m_bChannelsUpdating           = false;
-  m_bChannelsUpdatePending      = false;
+  for (unsigned int iJobPtr = 0; iJobPtr < m_pendingUpdates.size(); iJobPtr++)
+    delete m_pendingUpdates.at(iJobPtr);
+  m_pendingUpdates.clear();
 }
 
 bool CPVRManager::DisableIfNoClients(void)
@@ -377,6 +379,9 @@ bool CPVRManager::DisableIfNoClients(void)
 void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
 {
   CLog::Log(LOGNOTICE,"PVRManager - %s - clearing the PVR database", __FUNCTION__);
+
+  /* close the epg progress dialog, or we'll get a deadlock */
+  g_PVREpg->CloseUpdateDialog();
 
   CGUIDialogProgress* pDlgProgress = NULL;
   if (bShowProgress)
@@ -419,19 +424,10 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
       pDlgProgress->Progress();
     }
 
-    /* delete all TV channel groups */
-    m_database->DeleteChannelGroups(false);
+    m_database->DeleteChannelGroups();
     if (bShowProgress)
     {
       pDlgProgress->SetPercentage(50);
-      pDlgProgress->Progress();
-    }
-
-    /* delete all radio channel groups */
-    m_database->DeleteChannelGroups(true);
-    if (bShowProgress)
-    {
-      pDlgProgress->SetPercentage(60);
       pDlgProgress->Progress();
     }
 
@@ -907,7 +903,7 @@ bool CPVRManager::PerformChannelSwitch(const CPVRChannel &channel, bool bPreview
 
 int CPVRManager::GetTotalTime(void) const
 {
-  return m_guiInfo->GetTotalTime();
+  return m_guiInfo->GetDuration();
 }
 
 int CPVRManager::GetStartTime(void) const
@@ -978,7 +974,7 @@ bool CPVRManager::IsRunningChannelScan(void) const
 
 PVR_ADDON_CAPABILITIES *CPVRManager::GetCurrentClientProperties(void)
 {
-  return m_addons->GetCurrentClientProperties();
+  return m_addons->GetCurrentAddonCapabilities();
 }
 
 void CPVRManager::StartChannelScan(void)
@@ -991,12 +987,23 @@ void CPVRManager::SearchMissingChannelIcons(void)
   return m_channelGroups->SearchMissingChannelIcons();
 }
 
-bool CPVRManager::IsUpdating(void) const
+bool CPVRManager::IsJobPending(const char *strJobName) const
 {
+  bool bReturn(false);
   CSingleLock lock(m_critSectionTriggers);
+  if (!m_bLoaded)
+    return bReturn;
 
-  return (m_bRecordingsUpdating || m_bTimersUpdating ||
-      m_bChannelsUpdating || m_bChannelGroupsUpdating);
+  for (unsigned int iJobPtr = 0; iJobPtr < m_pendingUpdates.size(); iJobPtr++)
+  {
+    if (!strcmp(m_pendingUpdates.at(iJobPtr)->GetType(), "pvr-update-recordings"))
+    {
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
 }
 
 void CPVRManager::TriggerRecordingsUpdate(void)
@@ -1005,13 +1012,13 @@ void CPVRManager::TriggerRecordingsUpdate(void)
   if (!m_bLoaded)
     return;
 
-  if (IsUpdating())
-  {
-    m_bRecordingsUpdatePending = true;
+  if (IsJobPending("pvr-update-recordings"))
     return;
-  }
 
-  StartRecordingsUpdateJob();
+  m_pendingUpdates.push_back(new CPVRRecordingsUpdateJob());
+
+  lock.Leave();
+  SetEvent(m_triggerEvent);
 }
 
 void CPVRManager::TriggerTimersUpdate(void)
@@ -1020,13 +1027,13 @@ void CPVRManager::TriggerTimersUpdate(void)
   if (!m_bLoaded)
     return;
 
-  if (IsUpdating())
-  {
-    m_bTimersUpdatePending = true;
+  if (IsJobPending("pvr-update-timers"))
     return;
-  }
 
-  StartTimersUpdateJob();
+  m_pendingUpdates.push_back(new CPVRTimersUpdateJob());
+
+  lock.Leave();
+  SetEvent(m_triggerEvent);
 }
 
 void CPVRManager::TriggerChannelsUpdate(void)
@@ -1035,14 +1042,13 @@ void CPVRManager::TriggerChannelsUpdate(void)
   if (!m_bLoaded)
     return;
 
-  if (IsUpdating())
-  {
-    if (!m_bChannelGroupsUpdatePending)
-      m_bChannelsUpdatePending = true;
+  if (IsJobPending("pvr-update-channels"))
     return;
-  }
 
-  StartChannelsUpdateJob();
+  m_pendingUpdates.push_back(new CPVRChannelsUpdateJob());
+
+  lock.Leave();
+  SetEvent(m_triggerEvent);
 }
 
 void CPVRManager::TriggerChannelGroupsUpdate(void)
@@ -1051,90 +1057,33 @@ void CPVRManager::TriggerChannelGroupsUpdate(void)
   if (!m_bLoaded)
     return;
 
-  if (IsUpdating())
-  {
-    m_bChannelsUpdatePending = false;
-    m_bChannelGroupsUpdatePending = true;
+  if (IsJobPending("pvr-update-channelgroups"))
     return;
-  }
 
-  StartChannelGroupsUpdateJob();
+  m_pendingUpdates.push_back(new CPVRChannelGroupsUpdateJob());
+
+  lock.Leave();
+  SetEvent(m_triggerEvent);
 }
 
-void CPVRManager::StartRecordingsUpdateJob(void)
+void CPVRManager::ExecutePendingJobs(void)
 {
   CSingleLock lock(m_critSectionTriggers);
 
-  m_bRecordingsUpdating = true;
-  CJobManager::GetInstance().AddJob(new CPVRRecordingsUpdateJob(), this);
-}
-
-void CPVRManager::StartTimersUpdateJob(void)
-{
-  CSingleLock lock(m_critSectionTriggers);
-
-  m_bTimersUpdating = true;
-  CJobManager::GetInstance().AddJob(new CPVRTimersUpdateJob(), this);
-}
-
-void CPVRManager::StartChannelsUpdateJob(void)
-{
-  CSingleLock lock(m_critSectionTriggers);
-
-  m_bChannelsUpdating = true;
-  CJobManager::GetInstance().AddJob(new CPVRChannelsUpdateJob(), this);
-}
-
-void CPVRManager::StartChannelGroupsUpdateJob(void)
-{
-  CSingleLock lock(m_critSectionTriggers);
-
-  m_bChannelGroupsUpdating = true;
-  m_bChannelsUpdating = true;
-  CJobManager::GetInstance().AddJob(new CPVRChannelGroupsUpdateJob(), this);
-}
-
-void CPVRManager::OnJobComplete(unsigned int jobID, bool success, CJob* job)
-{
-  CSingleLock lock(m_critSectionTriggers);
-
-  if (!strcmp(job->GetType(), "pvr-update-channelgroups"))
+  while (m_pendingUpdates.size() > 0)
   {
-    m_bChannelGroupsUpdating = false;
-    m_bChannelsUpdating = false;
-  }
-  else if (!strcmp(job->GetType(), "pvr-update-channels"))
-    m_bChannelsUpdating = false;
-  else if (!strcmp(job->GetType(), "pvr-update-timers"))
-    m_bTimersUpdating = false;
-  else if (!strcmp(job->GetType(), "pvr-update-recordings"))
-    m_bRecordingsUpdating = false;
+    CJob *job = m_pendingUpdates.at(0);
+    m_pendingUpdates.erase(m_pendingUpdates.begin());
+    lock.Leave();
 
-  StartNextPendingJob();
+    job->DoWork();
+    delete job;
+  }
+
+  ResetEvent(m_triggerEvent);
 }
 
-void CPVRManager::StartNextPendingJob(void)
+void CPVRManager::ShowPlayerInfo(int iTimeout)
 {
-  CSingleLock lock(m_critSectionTriggers);
-
-  if (m_bChannelGroupsUpdatePending)
-  {
-    m_bChannelGroupsUpdatePending = false;
-    StartChannelGroupsUpdateJob();
-  }
-  else if (m_bChannelsUpdatePending)
-  {
-    m_bChannelsUpdatePending = false;
-    StartChannelsUpdateJob();
-  }
-  else if (m_bTimersUpdatePending)
-  {
-    m_bTimersUpdatePending = false;
-    StartTimersUpdateJob();
-  }
-  else if (m_bRecordingsUpdatePending)
-  {
-    m_bRecordingsUpdatePending = false;
-    StartRecordingsUpdateJob();
-  }
+  m_guiInfo->ShowPlayerInfo(iTimeout);
 }

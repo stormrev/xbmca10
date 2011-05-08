@@ -32,7 +32,6 @@
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "settings/AdvancedSettings.h"
-#include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 
@@ -76,14 +75,12 @@ CPVRClient::~CPVRClient(void)
 {
 }
 
-bool CPVRClient::Create(int iClientId, IPVRClientCallback *pvrCB)
+bool CPVRClient::Create(int iClientId)
 {
   bool bReturn(false);
-  CSingleLock lock(m_critSection);
   CLog::Log(LOGDEBUG, "PVR - %s - creating PVR add-on instance '%s'", __FUNCTION__, Name().c_str());
 
   /* initialise members */
-  m_manager              = pvrCB;
   if (!m_pInfo)
     m_pInfo              = new PVR_PROPERTIES;
   m_pInfo->iClienId      = iClientId;
@@ -107,7 +104,6 @@ bool CPVRClient::Create(int iClientId, IPVRClientCallback *pvrCB)
 
 void CPVRClient::Destroy(void)
 {
-  CSingleLock lock(m_critSection);
   CLog::Log(LOGDEBUG, "PVR - %s - destroying PVR add-on '%s'", __FUNCTION__, GetFriendlyName());
   m_bReadyToUse = false;
 
@@ -126,24 +122,18 @@ void CPVRClient::Destroy(void)
 
 bool CPVRClient::ReCreate(void)
 {
-  long clientID             = m_pInfo->iClienId;
-  IPVRClientCallback *pvrCB = m_manager;
-
+  int clientID = m_pInfo->iClienId;
   Destroy();
-  return Create(clientID, pvrCB);
+  return Create(clientID);
 }
 
 bool CPVRClient::ReadyToUse(void) const
 {
-  CSingleLock lock(m_critSection);
-
   return m_bReadyToUse;
 }
 
 int CPVRClient::GetID(void) const
 {
-  CSingleLock lock(m_critSection);
-
   return m_pInfo->iClienId;
 }
 
@@ -233,8 +223,6 @@ inline void PVRWriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHANNE
 
 PVR_ERROR CPVRClient::GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
 {
-  CSingleLock lock(m_critSection);
-
   *pCapabilities = m_addonCapabilities;
 
   return PVR_ERROR_NO_ERROR;
@@ -242,8 +230,6 @@ PVR_ERROR CPVRClient::GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities
 
 const char *CPVRClient::GetBackendName(void)
 {
-  CSingleLock lock(m_critSection);
-
   /* cached locally */
   SetBackendName();
 
@@ -252,8 +238,6 @@ const char *CPVRClient::GetBackendName(void)
 
 const char *CPVRClient::GetBackendVersion(void)
 {
-  CSingleLock lock(m_critSection);
-
   /* cached locally */
   SetBackendVersion();
 
@@ -262,8 +246,6 @@ const char *CPVRClient::GetBackendVersion(void)
 
 const char *CPVRClient::GetConnectionString(void)
 {
-  CSingleLock lock(m_critSection);
-
   /* cached locally */
   SetConnectionString();
 
@@ -272,8 +254,6 @@ const char *CPVRClient::GetConnectionString(void)
 
 const char *CPVRClient::GetFriendlyName(void)
 {
-  CSingleLock lock(m_critSection);
-
   /* cached locally */
   SetFriendlyName();
 
@@ -282,7 +262,6 @@ const char *CPVRClient::GetFriendlyName(void)
 
 PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
 {
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return PVR_ERROR_UNKOWN;
 
@@ -305,7 +284,6 @@ PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
 
 //PVR_ERROR CPVRClient::GetBackendTime(time_t *localTime, int *iGmtOffset)
 //{
-//  CSingleLock lock(m_critSection);
 //  if (!m_bReadyToUse)
 //    return PVR_ERROR_UNKOWN;
 //
@@ -328,7 +306,6 @@ PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
 
 PVR_ERROR CPVRClient::StartChannelScan(void)
 {
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return PVR_ERROR_UNKOWN;
 
@@ -350,7 +327,6 @@ PVR_ERROR CPVRClient::StartChannelScan(void)
 
 void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook)
 {
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return;
 
@@ -368,7 +344,6 @@ void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook)
 PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg, time_t start /* = 0 */, time_t end /* = 0 */, bool bSaveInDb /* = false*/)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -407,7 +382,6 @@ PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg,
 int CPVRClient::GetChannelGroupsAmount(void)
 {
   int iReturn = -1;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return iReturn;
 
@@ -430,7 +404,6 @@ int CPVRClient::GetChannelGroupsAmount(void)
 PVR_ERROR CPVRClient::GetChannelGroups(CPVRChannelGroups *groups)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -462,7 +435,6 @@ PVR_ERROR CPVRClient::GetChannelGroups(CPVRChannelGroups *groups)
 PVR_ERROR CPVRClient::GetChannelGroupMembers(CPVRChannelGroup *group)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -500,7 +472,6 @@ PVR_ERROR CPVRClient::GetChannelGroupMembers(CPVRChannelGroup *group)
 int CPVRClient::GetChannelsAmount(void)
 {
   int iReturn = -1;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return iReturn;
 
@@ -520,7 +491,6 @@ int CPVRClient::GetChannelsAmount(void)
 PVR_ERROR CPVRClient::GetChannels(CPVRChannelGroup &channels, bool radio)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -553,7 +523,6 @@ PVR_ERROR CPVRClient::GetChannels(CPVRChannelGroup &channels, bool radio)
 int CPVRClient::GetRecordingsAmount(void)
 {
   int iReturn = -1;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return iReturn;
 
@@ -576,7 +545,6 @@ int CPVRClient::GetRecordingsAmount(void)
 PVR_ERROR CPVRClient::GetRecordings(CPVRRecordings *results)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -608,7 +576,6 @@ PVR_ERROR CPVRClient::GetRecordings(CPVRRecordings *results)
 PVR_ERROR CPVRClient::DeleteRecording(const CPVRRecording &recording)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -640,7 +607,6 @@ PVR_ERROR CPVRClient::DeleteRecording(const CPVRRecording &recording)
 PVR_ERROR CPVRClient::RenameRecording(const CPVRRecording &recording)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -672,7 +638,6 @@ PVR_ERROR CPVRClient::RenameRecording(const CPVRRecording &recording)
 int CPVRClient::GetTimersAmount(void)
 {
   int iReturn = -1;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return iReturn;
 
@@ -695,7 +660,6 @@ int CPVRClient::GetTimersAmount(void)
 PVR_ERROR CPVRClient::GetTimers(CPVRTimers *results)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -727,7 +691,6 @@ PVR_ERROR CPVRClient::GetTimers(CPVRTimers *results)
 PVR_ERROR CPVRClient::AddTimer(const CPVRTimerInfoTag &timer)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -759,7 +722,6 @@ PVR_ERROR CPVRClient::AddTimer(const CPVRTimerInfoTag &timer)
 PVR_ERROR CPVRClient::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce /* = false */)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -791,7 +753,6 @@ PVR_ERROR CPVRClient::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce /* 
 PVR_ERROR CPVRClient::RenameTimer(const CPVRTimerInfoTag &timer, const CStdString &strNewName)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -823,7 +784,6 @@ PVR_ERROR CPVRClient::RenameTimer(const CPVRTimerInfoTag &timer, const CStdStrin
 PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKOWN;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return retVal;
 
@@ -855,7 +815,6 @@ PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
 bool CPVRClient::OpenLiveStream(const CPVRChannel &channel)
 {
   bool bReturn = false;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return bReturn;
 
@@ -880,7 +839,6 @@ bool CPVRClient::OpenLiveStream(const CPVRChannel &channel)
 
 void CPVRClient::CloseLiveStream(void)
 {
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return;
 
@@ -917,15 +875,11 @@ int64_t CPVRClient::LengthLiveStream(void)
 
 int CPVRClient::GetCurrentClientChannel(void)
 {
-  CSingleLock lock(m_critSection);
-
   return m_pStruct->GetCurrentClientChannel();
 }
 
 bool CPVRClient::SwitchChannel(const CPVRChannel &channel)
 {
-  CSingleLock lock(m_critSection);
-
   PVR_CHANNEL tag;
   PVRWriteClientChannelInfo(channel, tag);
   return m_pStruct->SwitchChannel(tag);
@@ -934,7 +888,6 @@ bool CPVRClient::SwitchChannel(const CPVRChannel &channel)
 bool CPVRClient::SignalQuality(PVR_SIGNAL_STATUS &qualityinfo)
 {
   bool bReturn = false;
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return bReturn;
 
@@ -963,7 +916,6 @@ bool CPVRClient::SignalQuality(PVR_SIGNAL_STATUS &qualityinfo)
 const char *CPVRClient::GetLiveStreamURL(const CPVRChannel &channel)
 {
   static CStdString strReturn = "";
-  CSingleLock lock(m_critSection);
   if (!m_bReadyToUse)
     return strReturn.c_str();
 
@@ -984,8 +936,6 @@ const char *CPVRClient::GetLiveStreamURL(const CPVRChannel &channel)
 
 bool CPVRClient::OpenRecordedStream(const CPVRRecording &recording)
 {
-  CSingleLock lock(m_critSection);
-
   if (!m_addonCapabilities.bSupportsRecordings)
     return false;
 
@@ -996,8 +946,6 @@ bool CPVRClient::OpenRecordedStream(const CPVRRecording &recording)
 
 void CPVRClient::CloseRecordedStream(void)
 {
-  CSingleLock lock(m_critSection);
-
   return m_pStruct->CloseRecordedStream();
 }
 
@@ -1023,8 +971,6 @@ int64_t CPVRClient::LengthRecordedStream(void)
 
 PVR_ERROR CPVRClient::GetStreamProperties(PVR_STREAM_PROPERTIES *props)
 {
-  CSingleLock lock(m_critSection);
-
   try
   {
     return m_pStruct->GetStreamProperties(props);
@@ -1061,8 +1007,6 @@ DemuxPacket* CPVRClient::DemuxRead(void)
 
 ADDON_STATUS CPVRClient::SetSetting(const char *settingName, const void *settingValue)
 {
-//  CSingleLock lock(m_critSection);
-//
 //  try
 //  {
 //    return m_pDll->SetSetting(settingName, settingValue);
@@ -1070,35 +1014,27 @@ ADDON_STATUS CPVRClient::SetSetting(const char *settingName, const void *setting
 //  catch (exception &e)
 //  {
 //    CLog::Log(LOGERROR, "PVR: %s/%s - exception '%s' during SetSetting occurred, contact Developer '%s' of this AddOn", Name().c_str(), m_hostName.c_str(), e.what(), Author().c_str());
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 //  }
 }
 
 int CPVRClient::GetClientID(void) const
 {
-  CSingleLock lock(m_critSection);
-
   return m_pInfo->iClienId;
 }
 
 bool CPVRClient::HaveMenuHooks(void) const
 {
-  CSingleLock lock(m_critSection);
-
   return m_menuhooks.size() > 0;
 }
 
 PVR_MENUHOOKS *CPVRClient::GetMenuHooks(void)
 {
-  CSingleLock lock(m_critSection);
-
   return &m_menuhooks;
 }
 
 void CPVRClient::SetBackendName(void)
 {
-  CSingleLock lock(m_critSection);
-
   if (m_bGotBackendName || !m_bReadyToUse)
     return;
 
@@ -1117,8 +1053,6 @@ void CPVRClient::SetBackendName(void)
 
 void CPVRClient::SetBackendVersion(void)
 {
-  CSingleLock lock(m_critSection);
-
   if (m_bGotBackendVersion || !m_bReadyToUse)
     return;
 
@@ -1137,8 +1071,6 @@ void CPVRClient::SetBackendVersion(void)
 
 void CPVRClient::SetConnectionString(void)
 {
-  CSingleLock lock(m_critSection);
-
   if (m_bGotConnectionString || !m_bReadyToUse)
     return;
 
@@ -1157,8 +1089,6 @@ void CPVRClient::SetConnectionString(void)
 
 void CPVRClient::SetFriendlyName(void)
 {
-  CSingleLock lock(m_critSection);
-
    if (m_bGotFriendlyName || !m_bReadyToUse)
      return;
 
@@ -1169,8 +1099,6 @@ void CPVRClient::SetFriendlyName(void)
 
 PVR_ERROR CPVRClient::SetAddonCapabilities(void)
 {
-  CSingleLock lock(m_critSection);
-
   if (m_bGotAddonCapabilities)
     return PVR_ERROR_NO_ERROR;
 

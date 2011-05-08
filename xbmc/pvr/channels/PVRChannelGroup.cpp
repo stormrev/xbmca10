@@ -99,7 +99,7 @@ int CPVRChannelGroup::Load(void)
 
   m_bUsingBackendChannelOrder = g_guiSettings.GetBool("pvrmanager.backendchannelorder");
 
-  int iChannelCount = LoadFromDb();
+  int iChannelCount = m_iGroupId > 0 ? LoadFromDb() : 0;
   CLog::Log(LOGDEBUG, "PVRChannelGroup - %s - %d channels loaded from the database for group '%s'",
         __FUNCTION__, iChannelCount, m_strGroupName.c_str());
 
@@ -110,7 +110,7 @@ int CPVRChannelGroup::Load(void)
         __FUNCTION__, (int) size() - iChannelCount, m_strGroupName.c_str());
   }
 
-  g_guiSettings.AddObserver(this);
+  g_guiSettings.RegisterObserver(this);
   m_bLoaded = true;
 
   return size();
@@ -118,6 +118,7 @@ int CPVRChannelGroup::Load(void)
 
 void CPVRChannelGroup::Unload(void)
 {
+  g_guiSettings.UnregisterObserver(this);
   clear();
 }
 
@@ -568,9 +569,10 @@ bool CPVRChannelGroup::UpdateGroupEntries(const CPVRChannelGroup &channels)
        new channels were added at the back, so they'll get the highest numbers */
     bool bRenumbered = Renumber();
 
+    SetChanged();
     lock.Leave();
 
-    g_PVRManager.UpdateWindow(m_bRadio ? PVR_WINDOW_CHANNELS_RADIO : PVR_WINDOW_CHANNELS_TV, HasNewChannels() || bRemoved || bRenumbered);
+    NotifyObservers(HasNewChannels() || bRemoved || bRenumbered ? "channelgroup-reset" : "channelgroup");
 
     bReturn = Persist();
   }
@@ -728,22 +730,28 @@ bool CPVRChannelGroup::SetGroupName(const CStdString &strGroupName, bool bSaveIn
 
 bool CPVRChannelGroup::Persist(void)
 {
+  bool bReturn(true);
   CSingleLock lock(m_critSection);
+
   if (!HasChanges())
-    return true;
+    return bReturn;
 
   if (CPVRDatabase *database = OpenPVRDatabase())
   {
     CLog::Log(LOGDEBUG, "CPVRChannelGroup - %s - persisting channel group '%s' with %d channels",
         __FUNCTION__, GroupName().c_str(), (int) size());
-    database->Persist(*this);
-    database->Close();
-
     m_bChanged = false;
-    return true;
+    lock.Leave();
+
+    bReturn = database->Persist(*this);
+    database->Close();
+  }
+  else
+  {
+    bReturn = false;
   }
 
-  return false;
+  return bReturn;
 }
 
 bool CPVRChannelGroup::Renumber(void)
@@ -812,13 +820,6 @@ bool CPVRChannelGroup::HasChanges(void) const
   return m_bChanged || HasNewChannels() || HasChangedChannels();
 }
 
-void CPVRChannelGroup::CacheIcons(void)
-{
-  CSingleLock lock(m_critSection);
-  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
-    at(iChannelPtr).channel->CheckCachedIcon();
-}
-
 void CPVRChannelGroup::ResetChannelNumbers(void)
 {
   CSingleLock lock(m_critSection);
@@ -861,10 +862,10 @@ void CPVRChannelGroup::Notify(const Observable &obs, const CStdString& msg)
         Persist();
       }
     }
-    lock.Leave();
-
-    /* check whether cached icons are still valid */
-    if (IsInternalGroup())
-      CacheIcons();
   }
+}
+
+bool CPVRPersistGroupJob::DoWork(void)
+{
+  return m_group->Persist();
 }

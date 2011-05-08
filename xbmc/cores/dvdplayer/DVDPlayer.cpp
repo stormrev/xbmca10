@@ -558,6 +558,11 @@ bool CDVDPlayer::OpenDemuxStream()
   m_SelectionStreams.Clear(STREAM_NONE, STREAM_SOURCE_NAV);
   m_SelectionStreams.Update(m_pInputStream, m_pDemuxer);
 
+  int64_t len = m_pInputStream->GetLength();
+  int64_t tim = m_pDemuxer->GetStreamLength();
+  if(len > 0 && tim > 0)
+    m_pInputStream->SetReadRate(len * 1000 / tim);
+
   return true;
 }
 
@@ -943,7 +948,10 @@ void CDVDPlayer::Process()
   m_ready.Set();
 
   // make sure all selected stream have data on startup
-  SetCaching(CACHESTATE_INIT);
+  if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER))
+    SetCaching(CACHESTATE_PVR);
+  else
+    SetCaching(CACHESTATE_INIT);
 
   while (!m_bAbortRequest)
   {
@@ -1003,7 +1011,7 @@ void CDVDPlayer::Process()
         {
           FlushBuffers(false);
           SAFE_DELETE(m_pDemuxer);
-          SetCaching(CACHESTATE_INIT);
+          SetCaching(CACHESTATE_PVR);
           continue;
         }
         else
@@ -1014,8 +1022,8 @@ void CDVDPlayer::Process()
     }
 
     // if the queues are full, no need to read more
-    if ((!m_dvdPlayerAudio.AcceptsData() && m_CurrentAudio.id >= 0)
-    ||  (!m_dvdPlayerVideo.AcceptsData() && m_CurrentVideo.id >= 0))
+    if ((!m_dvdPlayerAudio.AcceptsData() && m_CurrentAudio.id >= 0) ||
+        (!m_dvdPlayerVideo.AcceptsData() && m_CurrentVideo.id >= 0))
     {
       Sleep(10);
       if( m_caching != CACHESTATE_INIT
@@ -1346,6 +1354,15 @@ void CDVDPlayer::HandlePlaySpeed()
     && (m_CurrentAudio.id < 0 || m_CurrentAudio.started))
       SetCaching(CACHESTATE_PLAY);
   }
+
+  if (m_caching == CACHESTATE_PVR)
+  {
+    /* if all streams got at least g_advancedSettings.m_iPVRMinCacheLevel in their buffers, we're done */
+    if (m_dvdPlayerAudio.m_messageQueue.GetLevel() >= g_advancedSettings.m_iPVRMinCacheLevel &&
+        m_dvdPlayerVideo.m_messageQueue.GetLevel() >= g_advancedSettings.m_iPVRMinCacheLevel)
+      SetCaching(CACHESTATE_DONE);
+  }
+
   if(m_caching == CACHESTATE_PLAY)
   {
     // if all enabled streams have started playing we are done
@@ -1407,14 +1424,13 @@ bool CDVDPlayer::CheckStartCaching(CCurrentStream& current)
   {
     if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER))
     {
-      /* need data in the video and audio queue or we could get sync problems */
-      if(m_dvdPlayerAudio.m_messageQueue.GetLevel() > 50 &&
-          m_dvdPlayerVideo.m_messageQueue.GetLevel() > 50)
-        return false;
+      SetCaching(CACHESTATE_PVR);
+      return true;
     }
+
     // don't start caching if it's only a single stream that has run dry
-    else if(m_dvdPlayerAudio.m_messageQueue.GetLevel() > 50 ||
-        m_dvdPlayerVideo.m_messageQueue.GetLevel() > 50)
+    if(m_dvdPlayerAudio.m_messageQueue.GetLevel() > 50 ||
+         m_dvdPlayerVideo.m_messageQueue.GetLevel() > 50)
       return false;
 
     if(current.inited)
@@ -2050,9 +2066,9 @@ void CDVDPlayer::HandleMessages()
         CDVDInputStream::IChannel* input = dynamic_cast<CDVDInputStream::IChannel*>(m_pInputStream);
         if(input && input->SelectChannelByNumber(static_cast<CDVDMsgInt*>(pMsg)->m_value))
         {
-
           FlushBuffers(false);
           SAFE_DELETE(m_pDemuxer);
+          SetCaching(CACHESTATE_PVR);
         }
       }
       else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREV))
@@ -2086,6 +2102,7 @@ void CDVDPlayer::HandleMessages()
               FlushBuffers(false);
               SAFE_DELETE(m_pDemuxer);
             }
+            SetCaching(CACHESTATE_PVR);
           }
         }
       }
@@ -2119,7 +2136,8 @@ void CDVDPlayer::SetCaching(ECacheState state)
 
   CLog::Log(LOGDEBUG, "CDVDPlayer::SetCaching - caching state %d", state);
   if(state == CACHESTATE_FULL
-  || state == CACHESTATE_INIT)
+  || state == CACHESTATE_INIT
+  || state == CACHESTATE_PVR)
   {
     m_clock.SetSpeed(DVD_PLAYSPEED_PAUSE);
     m_dvdPlayerAudio.SetSpeed(DVD_PLAYSPEED_PAUSE);
@@ -2148,7 +2166,7 @@ void CDVDPlayer::SetPlaySpeed(int speed)
 
 void CDVDPlayer::Pause()
 {
-  if(m_playSpeed != DVD_PLAYSPEED_PAUSE && m_caching == CACHESTATE_FULL)
+  if(m_playSpeed != DVD_PLAYSPEED_PAUSE && (m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR))
   {
     SetCaching(CACHESTATE_DONE);
     return;
@@ -2169,7 +2187,7 @@ void CDVDPlayer::Pause()
 
 bool CDVDPlayer::IsPaused() const
 {
-  return (m_playSpeed == DVD_PLAYSPEED_PAUSE) || m_caching == CACHESTATE_FULL;
+  return (m_playSpeed == DVD_PLAYSPEED_PAUSE) || m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR;
 }
 
 bool CDVDPlayer::HasVideo() const
@@ -2367,8 +2385,8 @@ void CDVDPlayer::GetGeneralInfo(CStdString& strGeneralInfo)
       int64_t remain = m_State.file_length - m_State.file_position - queued;
 
       strBuf.AppendFormat(" buf:%s/%s"
-                         , StringUtils::SizeToString(std::min(remain, cached)).c_str()
-                         , StringUtils::SizeToString(std::max(remain, (int64_t)0)).c_str());
+                         , StringUtils::SizeToString(cached).c_str()
+                         , StringUtils::SizeToString(std::max(remain, cached)).c_str());
     }
 
     strGeneralInfo.Format("C( ad:% 6.3f, a/v:% 6.3f%s, dcpu:%2i%% acpu:%2i%% vcpu:%2i%%%s )"
@@ -3149,6 +3167,21 @@ int CDVDPlayer::OnDVDNavResult(void* pData, int iMessage)
   return NAVRESULT_NOP;
 }
 
+bool CDVDPlayer::ShowPVRChannelInfo(void)
+{
+  bool bReturn(false);
+
+  if (g_guiSettings.GetBool("pvrmenu.infoswitch"))
+  {
+    int iTimeout = g_guiSettings.GetBool("pvrmenu.infotimeout") ? g_guiSettings.GetInt("pvrmenu.infotime") : 0;
+    g_PVRManager.ShowPlayerInfo(iTimeout);
+
+    bReturn = true;
+  }
+
+  return bReturn;
+}
+
 bool CDVDPlayer::OnAction(const CAction &action)
 {
 #define THREAD_ACTION(action) \
@@ -3338,19 +3371,7 @@ bool CDVDPlayer::OnAction(const CAction &action)
       case ACTION_PAGE_UP:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_NEXT));
         g_infoManager.SetDisplayAfterSeek();
-        if (g_guiSettings.GetBool("pvrmenu.infoswitch"))
-        {
-          CGUIDialogFullScreenInfo* pDialog = (CGUIDialogFullScreenInfo*)g_windowManager.GetWindow(WINDOW_DIALOG_FULLSCREEN_INFO);
-          if (pDialog)
-          {
-            if (g_guiSettings.GetBool("pvrmenu.infotimeout"))
-            {
-              pDialog->SetAutoClose(g_guiSettings.GetInt("pvrmenu.infotime")*1000);
-            }
-            if (m_ChannelEntryTimeOut == 0)
-              pDialog->DoModal();
-          }
-        }
+        ShowPVRChannelInfo();
         return true;
       break;
 
@@ -3359,19 +3380,7 @@ bool CDVDPlayer::OnAction(const CAction &action)
       case ACTION_PAGE_DOWN:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREV));
         g_infoManager.SetDisplayAfterSeek();
-        if (g_guiSettings.GetBool("pvrmenu.infoswitch"))
-        {
-          CGUIDialogFullScreenInfo* pDialog = (CGUIDialogFullScreenInfo*)g_windowManager.GetWindow(WINDOW_DIALOG_FULLSCREEN_INFO);
-          if (pDialog)
-          {
-            if (g_guiSettings.GetBool("pvrmenu.infotimeout"))
-            {
-              pDialog->SetAutoClose(g_guiSettings.GetInt("pvrmenu.infotime")*1000);
-            }
-            if (m_ChannelEntryTimeOut == 0)
-              pDialog->DoModal();
-          }
-        }
+        ShowPVRChannelInfo();
         return true;
       break;
 
@@ -3381,18 +3390,7 @@ bool CDVDPlayer::OnAction(const CAction &action)
         int channel = action.GetAmount();
         m_messenger.Put(new CDVDMsgInt(CDVDMsg::PLAYER_CHANNEL_SELECT, channel));
         g_infoManager.SetDisplayAfterSeek();
-        if (g_guiSettings.GetBool("pvrmenu.infoswitch"))
-        {
-          CGUIDialogFullScreenInfo* pDialog = (CGUIDialogFullScreenInfo*)g_windowManager.GetWindow(WINDOW_DIALOG_FULLSCREEN_INFO);
-          if (pDialog)
-          {
-            if (g_guiSettings.GetBool("pvrmenu.infotimeout"))
-            {
-              pDialog->SetAutoClose(g_guiSettings.GetInt("pvrmenu.infotime")*1000);
-            }
-            pDialog->DoModal();
-          }
-        }
+        ShowPVRChannelInfo();
         return true;
       }
       break;
@@ -3647,7 +3645,7 @@ void CDVDPlayer::UpdatePlayState(double timeout)
       m_State.canrecord = input->CanRecord();
       m_State.recording = input->IsRecording();
 
-      if(input->GetTotalTime() > 0)
+      if(input->GetTotalTime() > 0 && input->GetStartTime() > 0)
       {
         m_State.time       = input->GetStartTime();
         m_State.time_total = input->GetTotalTime();

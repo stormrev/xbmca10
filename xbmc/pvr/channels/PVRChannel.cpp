@@ -22,10 +22,10 @@
 #include "FileItem.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
+#include "TextureCache.h"
 #include "Util.h"
 #include "filesystem/File.h"
 #include "music/tags/MusicInfoTag.h"
-#include "pictures/Picture.h"
 #include "settings/GUISettings.h"
 #include "utils/URIUtils.h"
 #include "threads/SingleLock.h"
@@ -40,7 +40,7 @@ using namespace XFILE;
 using namespace MUSIC_INFO;
 using namespace PVR;
 
-bool CPVRChannel::operator==(const CPVRChannel& right) const
+bool CPVRChannel::operator==(const CPVRChannel &right) const
 {
   if (this == &right) return true;
 
@@ -49,6 +49,7 @@ bool CPVRChannel::operator==(const CPVRChannel& right) const
           m_strIconPath             == right.m_strIconPath &&
           m_strChannelName          == right.m_strChannelName &&
           m_bIsVirtual              == right.m_bIsVirtual &&
+          m_iEpgId                  == right.m_iEpgId &&
 
           m_iUniqueId               == right.m_iUniqueId &&
           m_iClientId               == right.m_iClientId &&
@@ -75,6 +76,7 @@ CPVRChannel::CPVRChannel(bool bRadio /* = false */)
   m_bChanged                = false;
   m_iCachedChannelNumber    = 0;
 
+  m_iEpgId                  = -1;
   m_EPG                     = NULL;
   m_bEPGEnabled             = true;
   m_strEPGScraper           = "client";
@@ -110,9 +112,13 @@ CPVRChannel::CPVRChannel(const PVR_CHANNEL &channel, unsigned int iClientId)
   m_iLastWatched            = 0;
   m_bEPGEnabled             = true;
   m_strEPGScraper           = "client";
+  m_iEpgId                  = -1;
   m_EPG                     = NULL;
   m_bChanged                = false;
   m_bIsCachingIcon          = false;
+
+  if (m_strChannelName.IsEmpty())
+    m_strChannelName.Format("%s %d", g_localizeStrings.Get(19029), m_iUniqueId);
 
   UpdateEncryptionName();
 }
@@ -142,6 +148,7 @@ CPVRChannel &CPVRChannel::operator=(const CPVRChannel &channel)
   m_strFileNameAndPath      = channel.m_strFileNameAndPath;
   m_iClientEncryptionSystem = channel.m_iClientEncryptionSystem;
   m_iCachedChannelNumber    = channel.m_iCachedChannelNumber;
+  m_iEpgId                  = channel.m_iEpgId;
   m_EPG                     = channel.m_EPG;
   m_bChanged                = channel.m_bChanged;
 
@@ -174,22 +181,18 @@ bool CPVRChannel::CacheIcon(void)
   if (!m_bIsCachingIcon)
     return bReturn;
 
-  CStdString strBasePath = g_guiSettings.GetString("pvrmenu.iconpath");
-  if (strBasePath.IsEmpty())
-    return bReturn;
-
   CStdString strIconPath(m_strIconPath);
-  if (URIUtils::IsInternetStream(strIconPath, true))
-  {
-    CStdString strNewFileName;
-    strNewFileName.Format("%s/icon_%s_%d_%d.tbn", strBasePath, m_bIsRadio ? "radio" : "tv", m_iClientId, m_iUniqueId);
-    lock.Leave();
+  lock.Leave();
 
-    if (CPicture::CacheThumb(strIconPath, strNewFileName))
-    {
-      SetIconPath(strNewFileName);
-      bReturn = true;
-    }
+  strIconPath = CTextureCache::Get().CheckAndCacheImage(strIconPath);
+
+  lock.Enter();
+  if (!m_strIconPath.Equals(strIconPath))
+  {
+    m_strIconPath = strIconPath;
+    m_bChanged = true;
+    SetChanged();
+    bReturn = true;
   }
 
   return bReturn;
@@ -341,8 +344,6 @@ bool CPVRChannel::SetIconPath(const CStdString &strIconPath, bool bSaveInDb /* =
     /* persist the changes */
     if (bSaveInDb)
       Persist();
-
-    CheckCachedIcon();
 
     bReturn = true;
   }
@@ -705,14 +706,22 @@ CPVREpg *CPVRChannel::GetEPG(void)
   CSingleLock lock(m_critSection);
   if (m_EPG == NULL)
   {
-    m_EPG = (CPVREpg *) g_PVREpg->GetById(m_iChannelId);
+    if (m_iEpgId > 0 && !g_guiSettings.GetBool("epg.ignoredbforclient"))
+      m_EPG = (CPVREpg *) g_PVREpg->GetById(m_iEpgId);
 
     if (m_EPG == NULL)
     {
       /* will be cleaned up by CPVREpgContainer on exit */
-      m_EPG = new CPVREpg(this);
-      m_EPG->Persist();
+      m_EPG = new CPVREpg(this, false);
+      if (!g_guiSettings.GetBool("epg.ignoredbforclient"))
+        m_EPG->Persist();
       g_PVREpg->push_back(m_EPG);
+    }
+
+    if (m_EPG && m_iEpgId != m_EPG->EpgID())
+    {
+      m_iEpgId = m_EPG->EpgID();
+      m_bChanged = true;
     }
   }
 

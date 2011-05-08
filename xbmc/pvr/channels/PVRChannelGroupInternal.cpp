@@ -28,6 +28,7 @@
 #include "PVRChannelGroupsContainer.h"
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
+#include "pvr/epg/PVREpg.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/addons/PVRClients.h"
 
@@ -46,7 +47,6 @@ int CPVRChannelGroupInternal::Load(void)
 {
   int iChannelCount = CPVRChannelGroup::Load();
   UpdateChannelPaths();
-  CacheIcons();
 
   return iChannelCount;
 }
@@ -386,12 +386,16 @@ bool CPVRChannelGroupInternal::Persist(void)
         bReturn = false;
       }
     }
+
+    lock.Leave();
   }
   else if (bHasChangedChannels)
   {
     /* queue queries */
     for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
       at(iChannelPtr).channel->Persist(true);
+
+    lock.Leave();
 
     /* and commit them */
     bReturn = database->CommitInsertQueries();
@@ -404,4 +408,35 @@ bool CPVRChannelGroupInternal::Persist(void)
   database->Close();
 
   return bReturn;
+}
+
+bool CPVRChannelGroupInternal::CreateChannelEpgs(void)
+{
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    CPVRChannel *channel = at(iChannelPtr).channel;
+    if (!channel)
+      continue;
+
+    CPVREpg *epg = channel->GetEPG();
+    if (epg)
+      epg->SetChannel(channel);
+  }
+
+  if (HasChangedChannels())
+    return Persist();
+
+  return true;
+}
+
+void CPVRChannelGroupInternal::CacheIcons(void)
+{
+  bool bUpdated(false);
+  CSingleLock lock(m_critSection);
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+    bUpdated = at(iChannelPtr).channel->CheckCachedIcon() || bUpdated;
+
+  /* persist channels after the icons have been cached */
+  if (bUpdated)
+    CJobManager::GetInstance().AddJob(new CPVRPersistGroupJob(this), this);
 }
