@@ -32,6 +32,7 @@
 #include "pvr/windows/GUIWindowPVR.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/timers/PVRTimers.h"
+#include "pvr/epg/PVREpgContainer.h"
 #include "settings/GUISettings.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
@@ -49,14 +50,18 @@ CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio)
   m_bRadio              = bRadio;
   m_selectedGroup       = NULL;
   m_bShowHiddenChannels = false;
-  m_bObservingTimers    = false;
+}
+
+CGUIWindowPVRChannels::~CGUIWindowPVRChannels(void)
+{
+  g_PVREpg->UnregisterObserver(this);
+  g_PVRTimers->UnregisterObserver(this);
 }
 
 void CGUIWindowPVRChannels::ResetObservers(void)
 {
   CSingleLock lock(m_critSection);
-
-  m_bObservingTimers = true;
+  g_PVREpg->RegisterObserver(this);
   g_PVRTimers->RegisterObserver(this);
 }
 
@@ -130,7 +135,7 @@ void CGUIWindowPVRChannels::SetSelectedGroup(CPVRChannelGroup *group)
 
 void CGUIWindowPVRChannels::Notify(const Observable &obs, const CStdString& msg)
 {
-  if (msg.Equals("channelgroup") || msg.Equals("timers-reset") || msg.Equals("timers"))
+  if (msg.Equals("channelgroup") || msg.Equals("timers-reset") || msg.Equals("timers") || msg.Equals("epg-now"))
   {
     if (IsVisible())
       SetInvalid();
@@ -165,16 +170,13 @@ void CGUIWindowPVRChannels::UpdateData(void)
   if (m_bIsFocusing)
     return;
 
-  if (!m_bObservingTimers)
-  {
-    m_bObservingTimers = true;
-    g_PVRTimers->RegisterObserver(this);
-  }
-
   CLog::Log(LOGDEBUG, "CGUIWindowPVRChannels - %s - update window '%s'. set view to %d",
       __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  g_PVREpg->RegisterObserver(this);
+  g_PVRTimers->RegisterObserver(this);
 
   /* lock the graphics context while updating */
   CSingleLock graphicsLock(g_graphicsContext);

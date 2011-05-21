@@ -159,7 +159,6 @@ CFileItem::CFileItem(const CPVREpgInfoTag& tag)
   SetLabel(tag.Title());
   m_strLabel2 = tag.Plot();
 
-  FillInDefaultIcon();
   if (!tag.Icon().IsEmpty())
   {
     SetThumbnailImage(tag.Icon());
@@ -185,7 +184,6 @@ CFileItem::CFileItem(const CEpgInfoTag& tag)
   SetLabel(tag.Title());
   m_strLabel2 = tag.Plot();
 
-  FillInDefaultIcon();
   if (!tag.Icon().IsEmpty())
   {
     SetThumbnailImage(tag.Icon());
@@ -229,7 +227,6 @@ CFileItem::CFileItem(const CPVRChannel& channel)
     }
   }
 
-  FillInDefaultIcon();
   if (!channel.IconPath().IsEmpty())
   {
     SetThumbnailImage(channel.IconPath());
@@ -254,8 +251,6 @@ CFileItem::CFileItem(const CPVRRecording& record)
   *GetPVRRecordingInfoTag() = record;
   SetLabel(record.m_strTitle);
   m_strLabel2 = record.m_strPlot;
-
-  FillInDefaultIcon();
 }
 
 CFileItem::CFileItem(const CPVRTimerInfoTag& timer)
@@ -276,7 +271,11 @@ CFileItem::CFileItem(const CPVRTimerInfoTag& timer)
   SetLabel(timer.m_strTitle);
   m_strLabel2 = timer.m_strSummary;
 
-  FillInDefaultIcon();
+  if (!timer.ChannelIcon().IsEmpty())
+  {
+    SetThumbnailImage(timer.ChannelIcon());
+    SetIconImage(timer.ChannelIcon());
+  }
 }
 
 CFileItem::CFileItem(const CArtist& artist)

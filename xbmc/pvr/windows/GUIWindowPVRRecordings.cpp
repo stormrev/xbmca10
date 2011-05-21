@@ -38,18 +38,18 @@ CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_RECORDINGS, CONTROL_BTNRECORDINGS, CONTROL_LIST_RECORDINGS)
 {
   m_strSelectedPath = "pvr://recordings/";
-  m_bObservingRecordings = false;
-  m_bObservingTimers = false;
+}
+
+CGUIWindowPVRRecordings::~CGUIWindowPVRRecordings(void)
+{
+  g_PVRRecordings->UnregisterObserver(this);
+  g_PVRTimers->UnregisterObserver(this);
 }
 
 void CGUIWindowPVRRecordings::ResetObservers(void)
 {
   CSingleLock lock(m_critSection);
-
-  m_bObservingRecordings = true;
   g_PVRRecordings->RegisterObserver(this);
-
-  m_bObservingTimers = true;
   g_PVRTimers->RegisterObserver(this);
 }
 
@@ -120,21 +120,12 @@ void CGUIWindowPVRRecordings::UpdateData(void)
   if (m_bIsFocusing)
     return;
 
-  if (!m_bObservingRecordings)
-  {
-    m_bObservingRecordings = true;
-    g_PVRRecordings->RegisterObserver(this);
-  }
-
-  if (!m_bObservingTimers)
-  {
-    m_bObservingTimers = true;
-    g_PVRTimers->RegisterObserver(this);
-  }
-
   CLog::Log(LOGDEBUG, "CGUIWindowPVRRecordings - %s - update window '%s'. set view to %d", __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  g_PVRRecordings->RegisterObserver(this);
+  g_PVRTimers->RegisterObserver(this);
 
   /* lock the graphics context while updating */
   CSingleLock graphicsLock(g_graphicsContext);

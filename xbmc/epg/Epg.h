@@ -126,6 +126,8 @@ namespace EPG
      */
     virtual void UpdateFirstAndLastDates(void);
 
+    virtual bool IsRemovableTag(const EPG::CEpgInfoTag *tag) const { return true; }
+
   public:
     /*!
      * @brief Update this table's info with the given info. Doesn't change the EpgID.
@@ -327,7 +329,7 @@ namespace EPG
     /*!
      * @brief Notify observers when the currently active tag changed.
      */
-    virtual void CheckPlayingEvent(void);
+    virtual bool CheckPlayingEvent(void);
 
     /*!
      * @brief Convert a genre id and subid to a human readable name.

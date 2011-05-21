@@ -31,7 +31,7 @@ namespace PVR
   class CPVRChannelsUpdateJob;
   class CPVRChannelGroupsUpdateJob;
 
-  class CPVRChannelGroupsContainer : private CThread
+  class CPVRChannelGroupsContainer
   {
     friend class CPVRManager;
     friend class CPVRChannelsUpdateJob;
@@ -44,17 +44,13 @@ namespace PVR
     bool               m_bUpdateChannelsOnly;
     bool               m_bIsUpdating;
 
-    virtual bool ExecuteUpdate(bool bChannelsOnly);
-    virtual void Process(void);
-
   protected:
     /*!
      * @brief Update the contents of all the groups in this container.
      * @param bChannelsOnly Set to true to only update channels, not the groups themselves.
-     * @param bAsyncUpdate Try to update the channel groups async.
      * @return True if the update was successful, false otherwise.
      */
-    bool Update(bool bChannelsOnly = false, bool bAsyncUpdate = false);
+    bool Update(bool bChannelsOnly = false);
 
   public:
     /*!
@@ -65,7 +61,7 @@ namespace PVR
     /*!
      * @brief Destroy this container.
      */
-    ~CPVRChannelGroupsContainer(void);
+    virtual ~CPVRChannelGroupsContainer(void);
 
     /*!
      * @brief Load all channel groups and all channels in those channel groups.
@@ -123,6 +119,13 @@ namespace PVR
      * @return The requested group or NULL if it wasn't found.
      */
     const CPVRChannelGroup *GetById(bool bRadio, int iGroupId) const;
+
+    /*!
+     * @brief Get a group given it's ID.
+     * @param iGroupId The ID of the group.
+     * @return The requested group or NULL if it wasn't found.
+     */
+    const CPVRChannelGroup *GetByIdFromAll(int iGroupId) const;
 
     /*!
      * @brief Get a channel given it's database ID.

@@ -34,6 +34,7 @@ namespace PVR
 
   public:
     CGUIWindowPVRRecordings(CGUIWindowPVR *parent);
+    virtual ~CGUIWindowPVRRecordings(void);
 
     virtual void GetContextButtons(int itemNumber, CContextButtons &buttons) const;
     virtual bool OnAction(const CAction &action);
@@ -53,7 +54,5 @@ namespace PVR
     virtual bool OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON button);
 
     CStdString m_strSelectedPath;
-    bool       m_bObservingRecordings;
-    bool       m_bObservingTimers;
   };
 }

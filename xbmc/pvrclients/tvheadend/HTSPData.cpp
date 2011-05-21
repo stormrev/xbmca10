@@ -22,6 +22,7 @@
 #include "HTSPData.h"
 
 extern "C" {
+#include "cmyth/include/refmem/atomic.h"
 #include "libhts/htsmsg.h"
 #include "libhts/htsmsg_binary.h"
 }
@@ -48,6 +49,12 @@ bool CHTSPData::Open()
     return false;
   }
 
+  if(!SendEnableAsync())
+  {
+    XBMC->Log(LOG_ERROR, "%s - couldn't send EnableAsync().", __FUNCTION__);
+    return false;
+  }
+
   SetDescription("HTSP Data Listener");
   Start();
 
@@ -62,13 +69,31 @@ void CHTSPData::Close()
   Cancel(1);
 }
 
+bool CHTSPData::CheckConnection(void)
+{
+  bool bReturn(true);
+
+  if (!m_session->IsConnected() && m_bCreated)
+  {
+    EnableNotifications(false);
+    if ((bReturn = m_session->Connect() && SendEnableAsync()))
+    {
+      /* notify the user that the connection has been restored */
+      CStdString strNotification(XBMC->GetLocalizedString(30501));
+      XBMC->QueueNotification(QUEUE_INFO, strNotification, m_session->GetServerName());
+    }
+  }
+
+  return bReturn;
+}
+
 htsmsg_t* CHTSPData::ReadResult(htsmsg_t *m)
 {
   if (!m_session->IsConnected())
     return NULL;
 
   m_Mutex.Lock();
-  unsigned seq (m_session->AddSequence());
+  uint32_t seq = mvp_atomic_inc(&g_iPacketSequence);
 
   SMessage &message(m_queue[seq]);
   message.event = new cCondWait();
@@ -121,10 +146,8 @@ bool CHTSPData::GetDriveSpace(long long *total, long long *used)
   return true;
 }
 
-bool CHTSPData::GetTime(time_t *localTime, int *gmtOffset)
+bool CHTSPData::GetBackendTime(time_t *utcTime, int *gmtOffset)
 {
-  XBMC->Log(LOG_DEBUG, "%s", __FUNCTION__);
-
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "getSysTime");
   if ((msg = ReadResult(msg)) == NULL)
@@ -144,8 +167,9 @@ bool CHTSPData::GetTime(time_t *localTime, int *gmtOffset)
   XBMC->Log(LOG_DEBUG, "%s - tvheadend reported time=%u, timezone=%d, correction=%d"
       , __FUNCTION__, secs, offset);
 
-  *localTime = secs + offset;
-  *gmtOffset = -offset;
+  *utcTime = secs;
+  *gmtOffset = offset;
+
   return true;
 }
 
@@ -263,7 +287,6 @@ unsigned int CHTSPData::GetNumRecordings()
 
 PVR_ERROR CHTSPData::GetRecordings(PVR_HANDLE handle)
 {
-  EnableNotifications(true);
   SRecordings recordings = GetDVREntries(true, false);
 
   for(SRecordings::const_iterator it = recordings.begin(); it != recordings.end(); ++it)
@@ -416,8 +439,7 @@ PVR_ERROR CHTSPData::GetTimers(PVR_HANDLE handle)
     tag.strTitle          = recording.title.c_str();
     tag.strDirectory      = "/";   // unused
     tag.strSummary        = recording.description.c_str();
-    tag.bIsActive         = recording.state == ST_SCHEDULED || recording.state == ST_RECORDING;
-    tag.bIsRecording      = recording.state == ST_RECORDING;
+    tag.state             = (PVR_TIMER_STATE) recording.state;
     tag.iPriority         = 0;     // unused
     tag.iLifetime         = 0;     // unused
     tag.bIsRepeating      = false; // unused
@@ -469,11 +491,18 @@ PVR_ERROR CHTSPData::AddTimer(const PVR_TIMER &timer)
 {
   XBMC->Log(LOG_DEBUG, "%s - channelUid=%d title=%s epgid=%d", __FUNCTION__, timer.iClientChannelUid, timer.strTitle, timer.iEpgUid);
 
+  time_t startTime = timer.startTime;
+  if (startTime <= 0)
+  {
+    int iGmtOffset;
+    GetBackendTime(&startTime, &iGmtOffset);
+  }
+
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method",      "addDvrEntry");
   htsmsg_add_u32(msg, "eventId",     -1); // XXX tvheadend doesn't correct epg tags with wrong start and end times, so we'll use xbmc's values
   htsmsg_add_str(msg, "title",       timer.strTitle);
-  htsmsg_add_u32(msg, "start",       timer.startTime);
+  htsmsg_add_u32(msg, "start",       startTime);
   htsmsg_add_u32(msg, "stop",        timer.endTime);
   htsmsg_add_u32(msg, "channelId",   timer.iClientChannelUid);
   htsmsg_add_u32(msg, "priority",    timer.iPriority);
@@ -561,17 +590,16 @@ void CHTSPData::Action()
   XBMC->Log(LOG_DEBUG, "%s - starting", __FUNCTION__);
 
   htsmsg_t* msg;
-  if(!SendEnableAsync())
+  while (Running())
   {
-    XBMC->Log(LOG_ERROR, "%s - couldn't send EnableAsync().", __FUNCTION__);
-    m_started.Signal();
-    return;
-  }
+    if (!CheckConnection())
+    {
+      cCondWait::SleepMs(1000);
+      continue;
+    }
 
-  while (IsConnected() && Running())
-  {
-    if((msg = m_session->ReadMessage()) == NULL)
-      break;
+    if((msg = m_session->ReadMessage(250)) == NULL)
+      continue;
 
     uint32_t seq;
     if(htsmsg_get_u32(msg, "seq", &seq) == 0)
@@ -607,7 +635,10 @@ void CHTSPData::Action()
     else if(strstr(method, "tagDelete"))
       CHTSPConnection::ParseTagRemove(msg, m_tags);
     else if(strstr(method, "initialSyncCompleted"))
+    {
+      EnableNotifications(true);
       m_started.Signal();
+    }
     else if(strstr(method, "dvrEntryAdd"))
       CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings, SendNotifications());
     else if(strstr(method, "dvrEntryUpdate"))
