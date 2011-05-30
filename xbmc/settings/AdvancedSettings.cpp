@@ -242,6 +242,7 @@ void CAdvancedSettings::Initialize()
                                   //with ipv6.
 
   m_fullScreen = m_startFullScreen = false;
+  m_showExitButton = true;
   m_splashImage = true;
 
   m_playlistRetries = 100;
@@ -277,7 +278,8 @@ void CAdvancedSettings::Initialize()
   m_iPVRTimeCorrection             = 0;
   m_iPVRInfoToggleInterval         = 3000;
   m_bPVRShowEpgInfoOnEpgItemSelect = true;
-  m_iPVRMinCacheLevel              = 5;
+  m_iPVRMinVideoCacheLevel         = 5;
+  m_iPVRMinAudioCacheLevel         = 5;
 
   m_measureRefreshrate = false;
 
@@ -285,6 +287,8 @@ void CAdvancedSettings::Initialize()
 
   m_jsonOutputCompact = true;
   m_jsonTcpPort = 9090;
+
+  m_enableMultimediaKeys = false;
 }
 
 bool CAdvancedSettings::Load()
@@ -644,6 +648,7 @@ bool CAdvancedSettings::Load()
   XMLUtils::GetBoolean(pRootElement, "fullscreen", m_startFullScreen);
 #endif
   XMLUtils::GetBoolean(pRootElement, "splash", m_splashImage);
+  XMLUtils::GetBoolean(pRootElement, "showexitbutton", m_showExitButton);
 
   XMLUtils::GetInt(pRootElement, "songinfoduration", m_songInfoDuration, 0, INT_MAX);
   XMLUtils::GetInt(pRootElement, "busydialogdelay", m_busyDialogDelay, 0, 5000);
@@ -873,7 +878,8 @@ bool CAdvancedSettings::Load()
     XMLUtils::GetInt(pPVR, "timecorrection", m_iPVRTimeCorrection, 0, 1440);
     XMLUtils::GetInt(pPVR, "infotoggleinterval", m_iPVRInfoToggleInterval, 0, 30000);
     XMLUtils::GetBoolean(pPVR, "showepginfoonselect", m_bPVRShowEpgInfoOnEpgItemSelect);
-    XMLUtils::GetInt(pPVR, "mincachelevel", m_iPVRMinCacheLevel, 0, 100);
+    XMLUtils::GetInt(pPVR, "minvideocachelevel", m_iPVRMinVideoCacheLevel, 0, 100);
+    XMLUtils::GetInt(pPVR, "minaudiocachelevel", m_iPVRMinAudioCacheLevel, 0, 100);
   }
 
   XMLUtils::GetBoolean(pRootElement, "measurerefreshrate", m_measureRefreshrate);
@@ -921,6 +927,12 @@ bool CAdvancedSettings::Load()
     XMLUtils::GetString(pDatabase, "user", m_databaseEpg.user);
     XMLUtils::GetString(pDatabase, "pass", m_databaseEpg.pass);
     XMLUtils::GetString(pDatabase, "name", m_databaseEpg.name);
+  }
+
+  pElement = pRootElement->FirstChildElement("enablemultimediakeys");
+  if (pElement)
+  {
+    XMLUtils::GetBoolean(pRootElement, "enablemultimediakeys", m_enableMultimediaKeys);
   }
 
   // load in the GUISettings overrides:

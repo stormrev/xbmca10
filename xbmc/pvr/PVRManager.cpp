@@ -311,14 +311,14 @@ bool CPVRManager::ChannelSwitch(unsigned int iChannelNumber)
 bool CPVRManager::ChannelUpDown(unsigned int *iNewChannelNumber, bool bPreview, bool bUp)
 {
   bool bReturn = false;
-
-  CPVRChannel currentChannel;
-  if (m_addons->GetPlayingChannel(&currentChannel))
+  if (IsPlayingTV() || IsPlayingRadio())
   {
-    const CPVRChannelGroup *group = GetPlayingGroup(currentChannel.IsRadio());
+    CFileItem currentFile(g_application.CurrentFileItem());
+    CPVRChannel *currentChannel = currentFile.GetPVRChannelInfoTag();
+    const CPVRChannelGroup *group = GetPlayingGroup(currentChannel->IsRadio());
     if (group)
     {
-      const CPVRChannel *newChannel = bUp ? group->GetByChannelUp(currentChannel) : group->GetByChannelDown(currentChannel);
+      const CPVRChannel *newChannel = bUp ? group->GetByChannelUp(*currentChannel) : group->GetByChannelDown(*currentChannel);
       if (PerformChannelSwitch(*newChannel, bPreview))
       {
         *iNewChannelNumber = newChannel->ChannelNumber();
@@ -382,7 +382,10 @@ bool CPVRManager::DisableIfNoClients(void)
   {
     g_guiSettings.SetBool("pvrmanager.enabled", false);
     CLog::Log(LOGNOTICE,"PVRManager - no clients enabled. pvrmanager disabled.");
-    CGUIDialogOK::ShowAndGetInput(257,0,19223,0);
+
+    CGUIDialogOK *dialog = (CGUIDialogOK *)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
+    if (dialog)
+      dialog->ShowAndGetInput(257,0,19223,0);
     bReturn = true;
   }
 
@@ -420,7 +423,9 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
   }
 
   /* stop the thread */
-  Stop();
+  if (g_guiSettings.GetBool("pvrmanager.enabled"))
+    Stop();
+
   if (bShowProgress)
   {
     pDlgProgress->SetPercentage(20);
@@ -471,11 +476,14 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
     m_database->Close();
   }
 
-  Cleanup();
+  CLog::Log(LOGNOTICE,"PVRManager - %s - PVR database cleared", __FUNCTION__);
 
-  CLog::Log(LOGNOTICE,"PVRManager - %s - PVR database cleared. restarting the PVRManager", __FUNCTION__);
-
-  Start();
+  if (g_guiSettings.GetBool("pvrmanager.enabled"))
+  {
+    CLog::Log(LOGNOTICE,"PVRManager - %s - restarting the PVRManager", __FUNCTION__);
+    Cleanup();
+    Start();
+  }
 
   if (bShowProgress)
   {
@@ -490,7 +498,9 @@ void CPVRManager::ResetEPG(void)
 
   StopUpdateThreads();
   m_epg->Reset();
-  StartUpdateThreads();
+
+  if (g_guiSettings.GetBool("pvrmanager.enabled"))
+    StartUpdateThreads();
 }
 
 bool CPVRManager::IsPlaying(void) const
@@ -635,6 +645,9 @@ void CPVRManager::LoadCurrentChannelSettings()
     g_settings.m_currentVideoSettings.m_AudioStream         = loadedChannelSettings.m_AudioStream;
     g_settings.m_currentVideoSettings.m_SubtitleOn          = loadedChannelSettings.m_SubtitleOn;
     g_settings.m_currentVideoSettings.m_SubtitleDelay       = loadedChannelSettings.m_SubtitleDelay;
+    g_settings.m_currentVideoSettings.m_CustomNonLinStretch = loadedChannelSettings.m_CustomNonLinStretch;
+    g_settings.m_currentVideoSettings.m_ScalingMethod       = loadedChannelSettings.m_ScalingMethod;
+    g_settings.m_currentVideoSettings.m_PostProcess         = loadedChannelSettings.m_PostProcess;
 
     /* only change the view mode if it's different */
     if (g_settings.m_currentVideoSettings.m_ViewMode != loadedChannelSettings.m_ViewMode)
@@ -898,13 +911,17 @@ bool CPVRManager::PerformChannelSwitch(const CPVRChannel &channel, bool bPreview
   CLog::Log(LOGDEBUG, "PVRManager - %s - switching to channel '%s'",
       __FUNCTION__, channel.ChannelName().c_str());
 
+  /* make sure that channel settings are persisted */
+  if (!bPreview)
+    SaveCurrentChannelSettings();
+
   if (m_currentFile)
   {
     delete m_currentFile;
     m_currentFile = NULL;
   }
 
-  if (channel.ClientID() < 0 || !m_addons->SwitchChannel(channel))
+  if (!bPreview && (channel.ClientID() < 0 || !m_addons->SwitchChannel(channel)))
   {
     CLog::Log(LOGERROR, "PVRManager - %s - failed to switch to channel '%s'",
         __FUNCTION__, channel.ChannelName().c_str());
@@ -913,47 +930,96 @@ bool CPVRManager::PerformChannelSwitch(const CPVRChannel &channel, bool bPreview
   }
 
   m_currentFile = new CFileItem(channel);
-  LoadCurrentChannelSettings();
 
-  CLog::Log(LOGNOTICE, "PVRManager - %s - switched to channel '%s'",
-      __FUNCTION__, channel.ChannelName().c_str());
+  if (!bPreview)
+  {
+    LoadCurrentChannelSettings();
+
+    CLog::Log(LOGNOTICE, "PVRManager - %s - switched to channel '%s'",
+        __FUNCTION__, channel.ChannelName().c_str());
+  }
 
   return true;
 }
 
 int CPVRManager::GetTotalTime(void) const
 {
-  return m_guiInfo->GetDuration();
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return 0;
+  lock.Leave();
+
+  return !m_guiInfo ? 0 : m_guiInfo->GetDuration();
 }
 
 int CPVRManager::GetStartTime(void) const
 {
-  return m_guiInfo->GetStartTime();
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return 0;
+  lock.Leave();
+
+  return !m_guiInfo ? 0 : m_guiInfo->GetStartTime();
 }
 
 bool CPVRManager::TranslateBoolInfo(DWORD dwInfo) const
 {
-  return m_guiInfo->TranslateBoolInfo(dwInfo);
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return !m_guiInfo ? false : m_guiInfo->TranslateBoolInfo(dwInfo);
 }
 
 bool CPVRManager::TranslateCharInfo(DWORD dwInfo, CStdString &strValue) const
 {
-  return m_guiInfo->TranslateCharInfo(dwInfo, strValue);
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return !m_guiInfo ? false : m_guiInfo->TranslateCharInfo(dwInfo, strValue);
 }
 
 int CPVRManager::TranslateIntInfo(DWORD dwInfo) const
 {
-  return m_guiInfo->TranslateIntInfo(dwInfo);
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return 0;
+  lock.Leave();
+
+  return !m_guiInfo ? 0 : m_guiInfo->TranslateIntInfo(dwInfo);
 }
 
 bool CPVRManager::HasTimer(void) const
 {
-  return m_guiInfo->HasTimers();
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return !m_guiInfo ? false : m_guiInfo->HasTimers();
 }
 
 bool CPVRManager::IsRecording(void) const
 {
-  return m_guiInfo->IsRecording();
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return !m_guiInfo ? false : m_guiInfo->IsRecording();
+}
+
+void CPVRManager::ShowPlayerInfo(int iTimeout)
+{
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return;
+  lock.Leave();
+
+  m_guiInfo->ShowPlayerInfo(iTimeout);
 }
 
 void CPVRManager::LocalizationChanged(void)
@@ -974,36 +1040,71 @@ bool CPVRManager::IsRunning(void) const
 
 bool CPVRManager::IsPlayingTV(void) const
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
   return m_addons->IsPlayingTV();
 }
 
 bool CPVRManager::IsPlayingRadio(void) const
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
   return m_addons->IsPlayingRadio();
 }
 
 bool CPVRManager::IsPlayingRecording(void) const
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
   return m_addons->IsPlayingRecording();
 }
 
 bool CPVRManager::IsRunningChannelScan(void) const
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
   return m_addons->IsRunningChannelScan();
 }
 
 PVR_ADDON_CAPABILITIES *CPVRManager::GetCurrentClientProperties(void)
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return NULL;
+  lock.Leave();
+
   return m_addons->GetCurrentAddonCapabilities();
 }
 
 void CPVRManager::StartChannelScan(void)
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return;
+  lock.Leave();
+
   return m_addons->StartChannelScan();
 }
 
 void CPVRManager::SearchMissingChannelIcons(void)
 {
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return;
+  lock.Leave();
+
   return m_channelGroups->SearchMissingChannelIcons();
 }
 
@@ -1118,9 +1219,4 @@ void CPVRManager::ExecutePendingJobs(void)
   }
 
   ResetEvent(m_triggerEvent);
-}
-
-void CPVRManager::ShowPlayerInfo(int iTimeout)
-{
-  m_guiInfo->ShowPlayerInfo(iTimeout);
 }
