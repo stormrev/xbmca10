@@ -218,9 +218,9 @@ bool CGUIWindowMusicPlayList::OnAction(const CAction &action)
     // Playlist has no parent dirs
     return true;
   }
-  if (action.GetID() == ACTION_SHOW_PLAYLIST)
+  if (action.GetID() == ACTION_SHOW_PLAYLIST || action.GetID() == ACTION_NAV_BACK)
   {
-    g_windowManager.ChangeActiveWindow(WINDOW_MUSIC);
+    g_windowManager.PreviousWindow();
     return true;
   }
   if ((action.GetID() == ACTION_MOVE_ITEM_UP) || (action.GetID() == ACTION_MOVE_ITEM_DOWN))

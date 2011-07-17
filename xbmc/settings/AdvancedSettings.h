@@ -68,7 +68,7 @@ class CAdvancedSettings
     static CAdvancedSettings* getInstance();
 
     void Initialize();
-
+    void AddSettingsFile(const CStdString &filename);
     bool Load();
     void Clear();
 
@@ -214,7 +214,6 @@ class CAdvancedSettings
 
     bool m_bVideoScannerIgnoreErrors;
 
-    bool m_bUseEvilB;
     std::vector<CStdString> m_vecTokens; // cleaning strings tied to language
     //TuxBox
     int m_iTuxBoxStreamtsPort;
@@ -254,6 +253,7 @@ class CAdvancedSettings
     bool m_fullScreen;
     bool m_startFullScreen;
 	bool m_showExitButton; /* Ideal for appliances to hide a 'useless' button */
+    bool m_canWindowed;
     bool m_splashImage;
     bool m_alwaysOnTop;  /* makes xbmc to run always on top .. osx/win32 only .. */
     int m_playlistRetries;
@@ -298,12 +298,18 @@ class CAdvancedSettings
     DatabaseSettings m_databaseTV;    // advanced tv database setup
     DatabaseSettings m_databaseEpg;   /*!< advanced EPG database setup */
 
+    bool m_guiVisualizeDirtyRegions;
+    int  m_guiAlgorithmDirtyRegions;
+    int  m_guiDirtyRegionNoFlipTimeout;
+
     unsigned int m_cacheMemBufferSize;
 
     bool m_jsonOutputCompact;
     unsigned int m_jsonTcpPort;
 
     bool m_enableMultimediaKeys;
+    std::vector<CStdString> m_settingsFiles;
+    void ParseSettingsFile(const CStdString &file);
 };
 
 XBMC_GLOBAL(CAdvancedSettings,g_advancedSettings);

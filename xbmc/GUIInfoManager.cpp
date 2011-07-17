@@ -492,6 +492,7 @@ int CGUIInfoManager::TranslateSingleString(const CStdString &strCondition)
       int compareString = ConditionalStringParameter(label);
       return AddMultiInfo(GUIInfo(bNegate ? -SYSTEM_ADDON_ICON : SYSTEM_ADDON_ICON, compareString, 1));
     }
+    else if (strTest.Equals("system.batterylevel")) ret = SYSTEM_BATTERY_LEVEL;
   }
   // library test conditions
   else if (strTest.Left(7).Equals("library"))
@@ -1086,6 +1087,8 @@ TIME_FORMAT CGUIInfoManager::TranslateTimeFormat(const CStdString &format)
   else if (format.Equals("(hh:mm)")) return TIME_FORMAT_HH_MM;
   else if (format.Equals("(mm:ss)")) return TIME_FORMAT_MM_SS;
   else if (format.Equals("(hh:mm:ss)")) return TIME_FORMAT_HH_MM_SS;
+  else if (format.Equals("(h)")) return TIME_FORMAT_H;
+  else if (format.Equals("(h:mm:ss)")) return TIME_FORMAT_H_MM_SS;
   return TIME_FORMAT_GUESS;
 }
 
@@ -1408,6 +1411,7 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow)
   case SYSTEM_INTERNET_STATE:
   case SYSTEM_UPTIME:
   case SYSTEM_TOTALUPTIME:
+  case SYSTEM_BATTERY_LEVEL:
     return g_sysinfo.GetInfo(info);
     break;
 
@@ -1848,6 +1852,8 @@ int CGUIInfoManager::GetInt(int info, int contextWindow) const
     case PVR_ACTUAL_STREAM_SIG_PROGR:
     case PVR_ACTUAL_STREAM_SNR_PROGR:
       return g_PVRManager.TranslateIntInfo(info);
+    case SYSTEM_BATTERY_LEVEL:
+      return g_powerManager.BatteryLevel();
   }
   return 0;
 }
@@ -2773,7 +2779,7 @@ CStdString CGUIInfoManager::GetMultiInfoLabel(const GUIInfo &info, int contextWi
     AddonPtr addon;
     if (info.GetData2() == 0)
       CAddonMgr::Get().GetAddon(const_cast<CGUIInfoManager*>(this)->GetLabel(info.GetData1(), contextWindow),addon);
-    else 
+    else
       CAddonMgr::Get().GetAddon(m_stringParameters[info.GetData1()],addon);
     if (addon && info.m_info == SYSTEM_ADDON_TITLE)
       return addon->Name();
@@ -2956,9 +2962,13 @@ CStdString CGUIInfoManager::LocalizeTime(const CDateTime &time, TIME_FORMAT form
   case TIME_FORMAT_HH_MM:
     return time.GetAsLocalizedTime(use12hourclock ? "h:mm" : "HH:mm", false);
   case TIME_FORMAT_HH_MM_XX:
-      return time.GetAsLocalizedTime(use12hourclock ? "h:mm xx" : "HH:mm", false);      
+      return time.GetAsLocalizedTime(use12hourclock ? "h:mm xx" : "HH:mm", false);
   case TIME_FORMAT_HH_MM_SS:
     return time.GetAsLocalizedTime("", true);
+  case TIME_FORMAT_H:
+    return time.GetAsLocalizedTime("h", false);
+  case TIME_FORMAT_H_MM_SS:
+    return time.GetAsLocalizedTime("h:mm:ss", true);
   default:
     break;
   }
@@ -3205,9 +3215,9 @@ CStdString CGUIInfoManager::GetMusicTagLabel(int info, const CFileItem *item) co
   case MUSICPLAYER_GENRE:
     if (tag.GetGenre().size()) { return tag.GetGenre(); }
     break;
-  case MUSICPLAYER_LYRICS: 
-    if (tag.GetLyrics().size()) { return tag.GetLyrics(); } 
-   	break;
+  case MUSICPLAYER_LYRICS:
+    if (tag.GetLyrics().size()) { return tag.GetLyrics(); }
+  break;
   case MUSICPLAYER_TRACK_NUMBER:
     {
       CStdString strTrack;
@@ -3415,22 +3425,22 @@ CStdString CGUIInfoManager::GetVideoLabel(int item)
       return m_currentFile->GetVideoInfoTag()->m_strPlotOutline;
     case VIDEOPLAYER_EPISODE:
       {
-        CStdString strYear;
+        CStdString strEpisode;
         if (m_currentFile->GetVideoInfoTag()->m_iSpecialSortEpisode > 0)
-          strYear.Format("S%i", m_currentFile->GetVideoInfoTag()->m_iEpisode);
-        else if(m_currentFile->GetVideoInfoTag()->m_iEpisode > 0) 
-          strYear.Format("%i", m_currentFile->GetVideoInfoTag()->m_iEpisode);
-        return strYear;
+          strEpisode.Format("S%i", m_currentFile->GetVideoInfoTag()->m_iSpecialSortEpisode);
+        else if(m_currentFile->GetVideoInfoTag()->m_iEpisode > 0)
+          strEpisode.Format("%i", m_currentFile->GetVideoInfoTag()->m_iEpisode);
+        return strEpisode;
       }
       break;
     case VIDEOPLAYER_SEASON:
       {
-        CStdString strYear;
+        CStdString strSeason;
         if (m_currentFile->GetVideoInfoTag()->m_iSpecialSortSeason > 0)
-          strYear.Format("%i", m_currentFile->GetVideoInfoTag()->m_iSpecialSortSeason);
+          strSeason.Format("%i", m_currentFile->GetVideoInfoTag()->m_iSpecialSortSeason);
         else if(m_currentFile->GetVideoInfoTag()->m_iSeason > 0)
-          strYear.Format("%i", m_currentFile->GetVideoInfoTag()->m_iSeason);
-        return strYear;
+          strSeason.Format("%i", m_currentFile->GetVideoInfoTag()->m_iSeason);
+        return strSeason;
       }
       break;
     case VIDEOPLAYER_TVSHOW:
@@ -3574,6 +3584,11 @@ void CGUIInfoManager::SetCurrentSong(CFileItem &item)
   }
   else
     m_currentFile->SetMusicThumb();
+    if (!m_currentFile->HasProperty("fanart_image"))
+    {
+      if (m_currentFile->CacheLocalFanart())
+        m_currentFile->SetProperty("fanart_image", m_currentFile->GetCachedFanart());
+    }
   m_currentFile->FillInDefaultIcon();
 
   CMusicInfoLoader::LoadAdditionalTagInfo(m_currentFile);
@@ -4236,14 +4251,14 @@ CStdString CGUIInfoManager::GetItemLabel(const CFileItem *item, int info) const
       else if (item->IsVideoDb() && item->HasVideoInfoTag())
       {
         if( item->m_bIsFolder )
-	  path = item->GetVideoInfoTag()->m_strPath;
+          path = item->GetVideoInfoTag()->m_strPath;
         else
           URIUtils::GetParentPath(item->GetVideoInfoTag()->m_strFileNameAndPath, path);
       }
       else
         URIUtils::GetParentPath(item->m_strPath, path);
       path = CURL(path).GetWithoutUserDetails();
-      if (info==CONTAINER_FOLDERNAME)
+      if (info==LISTITEM_FOLDERNAME)
       {
         URIUtils::RemoveSlashAtEnd(path);
         path=URIUtils::GetFileName(path);
@@ -4298,7 +4313,7 @@ CStdString CGUIInfoManager::GetItemLabel(const CFileItem *item, int info) const
     break;
   case LISTITEM_WRITER:
     if (item->HasVideoInfoTag())
-      return item->GetVideoInfoTag()->m_strWritingCredits;;
+      return item->GetVideoInfoTag()->m_strWritingCredits;
     break;
   case LISTITEM_TAGLINE:
     if (item->HasVideoInfoTag())

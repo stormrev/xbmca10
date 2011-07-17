@@ -100,12 +100,6 @@ CGUIWindowVideoBase::~CGUIWindowVideoBase()
 
 bool CGUIWindowVideoBase::OnAction(const CAction &action)
 {
-  if (action.GetID() == ACTION_SHOW_PLAYLIST)
-  {
-    OutputDebugString("activate guiwindowvideoplaylist!\n");
-    g_windowManager.ActivateWindow(WINDOW_VIDEO_PLAYLIST);
-    return true;
-  }
   if (action.GetID() == ACTION_SCAN_ITEM)
     return OnContextButton(m_viewControl.GetSelectedItem(),CONTEXT_BUTTON_SCAN);
 
@@ -854,13 +848,18 @@ int  CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item)
   }
   else if (!item->IsNFO() && !item->IsPlayList())
   {
-    CBookmark bookmark;
-    CStdString strPath = item->m_strPath;
-    if ((item->IsVideoDb() || item->IsDVD()) && item->HasVideoInfoTag())
-      strPath = item->GetVideoInfoTag()->m_strFileNameAndPath;
+    if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_resumePoint.timeInSeconds > 0.0)
+      startoffset = (long)(item->GetVideoInfoTag()->m_resumePoint.timeInSeconds*75);
+    else
+    {
+      CBookmark bookmark;
+      CStdString strPath = item->m_strPath;
+      if ((item->IsVideoDb() || item->IsDVD()) && item->HasVideoInfoTag())
+        strPath = item->GetVideoInfoTag()->m_strFileNameAndPath;
 
-    if (db.GetResumeBookMark(strPath, bookmark))
-      startoffset = (long)(bookmark.timeInSeconds*75);
+      if (db.GetResumeBookMark(strPath, bookmark))
+        startoffset = (long)(bookmark.timeInSeconds*75);
+    }
   }
   db.Close();
 

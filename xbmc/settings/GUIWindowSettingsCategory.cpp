@@ -56,6 +56,7 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogProgress.h"
+#include "dialogs/GUIDialogKaiToast.h"
 #include "addons/Visualisation.h"
 #include "addons/AddonManager.h"
 #include "storage/MediaManager.h"
@@ -162,7 +163,7 @@ CGUIWindowSettingsCategory::~CGUIWindowSettingsCategory(void)
 
 bool CGUIWindowSettingsCategory::OnAction(const CAction &action)
 {
-  if (action.GetID() == ACTION_PREVIOUS_MENU || action.GetID() == ACTION_PARENT_DIR)
+  if (action.GetID() == ACTION_PREVIOUS_MENU || action.GetID() == ACTION_NAV_BACK)
   {
     g_settings.Save();
     if (m_iWindowBeforeJump!=WINDOW_INVALID)
@@ -171,8 +172,6 @@ bool CGUIWindowSettingsCategory::OnAction(const CAction &action)
       return true;
     }
     m_lastControlID = 0; // don't save the control as we go to a different window each time
-    g_windowManager.PreviousWindow();
-    return true;
   }
   return CGUIWindow::OnAction(action);
 }
@@ -720,7 +719,7 @@ void CGUIWindowSettingsCategory::UpdateSettings()
       {
         g_guiSettings.SetBool("services.esenabled", true);
         if (!g_application.StartEventServer())
-          g_application.m_guiDialogKaiToast.QueueNotification("DefaultIconWarning.png", g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
+          CGUIDialogKaiToast::QueueNotification("DefaultIconWarning.png", g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
       }
 
       // if XBMC helper is running, prompt user before effecting change
@@ -851,8 +850,7 @@ void CGUIWindowSettingsCategory::UpdateSettings()
                                          g_guiSettings.GetString("audiooutput.audiodevice").find("wasapi:") == CStdString::npos);
     }
 #ifdef HAS_WEB_SERVER
-    else if (strSetting.Equals("services.webserverport") ||
-             strSetting.Equals("services.webserverusername") ||
+    else if (strSetting.Equals("services.webserverusername") ||
              strSetting.Equals("services.webserverpassword"))
     {
       CGUIEditControl *pControl = (CGUIEditControl *)GetControl(pSettingControl->GetID());
@@ -2086,7 +2084,7 @@ void CGUIWindowSettingsCategory::FrameMove()
   CGUIWindow::FrameMove();
 }
 
-void CGUIWindowSettingsCategory::Render()
+void CGUIWindowSettingsCategory::DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
   // update alpha status of current button
   bool bAlphaFaded = false;
@@ -2106,7 +2104,7 @@ void CGUIWindowSettingsCategory::Render()
       bAlphaFaded = true;
     }
   }
-  CGUIWindow::Render();
+  CGUIWindow::DoProcess(currentTime, dirtyregions);
   if (bAlphaFaded)
   {
     control->SetFocus(false);
@@ -2115,6 +2113,11 @@ void CGUIWindowSettingsCategory::Render()
     else
       ((CGUIButtonControl *)control)->SetSelected(false);
   }
+}
+
+void CGUIWindowSettingsCategory::Render()
+{
+  CGUIWindow::Render();
   // render the error message if necessary
   if (m_strErrorMessage.size())
   {
@@ -2395,7 +2398,8 @@ DisplayMode CGUIWindowSettingsCategory::FillInScreens(CStdString strSetting, RES
   pControl->Clear();
 
   CStdString strScreen;
-  pControl->AddLabel(g_localizeStrings.Get(242), -1);
+  if (g_advancedSettings.m_canWindowed)
+    pControl->AddLabel(g_localizeStrings.Get(242), -1);
 
   for (int idx = 0; idx < g_Windowing.GetNumScreens(); idx++)
   {

@@ -152,18 +152,10 @@ CFileItemPtr CGUIMediaWindow::GetCurrentListItem(int offset)
 
 bool CGUIMediaWindow::OnAction(const CAction &action)
 {
-  if (action.GetID() == ACTION_PARENT_DIR)
+  if (action.GetID() == ACTION_PARENT_DIR ||
+     (action.GetID() == ACTION_NAV_BACK && !(m_vecItems->IsVirtualDirectoryRoot() || m_vecItems->m_strPath == m_startDirectory)))
   {
-    if ((m_vecItems->IsVirtualDirectoryRoot() || m_vecItems->m_strPath == m_startDirectory) && g_advancedSettings.m_bUseEvilB)
-      g_windowManager.PreviousWindow();
-    else
-      GoParentFolder();
-    return true;
-  }
-
-  if (action.GetID() == ACTION_PREVIOUS_MENU)
-  {
-    g_windowManager.PreviousWindow();
+    GoParentFolder();
     return true;
   }
 
@@ -321,7 +313,8 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       }
       else if (message.GetParam1() == GUI_MSG_REMOVED_MEDIA)
       {
-        if (m_vecItems->IsVirtualDirectoryRoot() && IsActive())
+        if ((m_vecItems->IsVirtualDirectoryRoot() ||
+             m_vecItems->m_strPath.Left(10).Equals("sources://")) && IsActive())
         {
           int iItem = m_viewControl.GetSelectedItem();
           Update(m_vecItems->m_strPath);
@@ -344,7 +337,8 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       }
       else if (message.GetParam1()==GUI_MSG_UPDATE_SOURCES)
       { // State of the sources changed, so update our view
-        if (m_vecItems->IsVirtualDirectoryRoot() && IsActive())
+        if ((m_vecItems->IsVirtualDirectoryRoot() ||
+             m_vecItems->m_strPath.Left(10).Equals("sources://")) && IsActive())
         {
           int iItem = m_viewControl.GetSelectedItem();
           Update(m_vecItems->m_strPath);
@@ -753,6 +747,8 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory)
     pItem->SetIconImage("DefaultAddSource.png");
     pItem->SetLabel(strLabel);
     pItem->SetLabelPreformated(true);
+    pItem->m_bIsFolder = true;
+    pItem->SetSpecialSort(SORT_ON_BOTTOM);
     m_vecItems->Add(pItem);
   }
   m_iLastControl = GetFocusedControlID();
@@ -967,7 +963,7 @@ bool CGUIMediaWindow::OnClick(int iItem)
       if (CAddonMgr::Get().GetAddon(url.GetHostName(),addon))
       {
         PluginPtr plugin = boost::dynamic_pointer_cast<CPluginSource>(addon);
-        if (plugin && plugin->Provides(CPluginSource::AUDIO))
+        if (plugin && plugin->Provides(CPluginSource::AUDIO) && pItem->IsAudio())
         {
           iPlaylist = PLAYLIST_MUSIC;
           autoplay = g_guiSettings.GetBool("musicplayer.autoplaynextitem");

@@ -37,6 +37,7 @@
 #include "video/dialogs/GUIDialogFullScreenInfo.h"
 #include "video/dialogs/GUIDialogAudioSubtitleSettings.h"
 #include "dialogs/GUIDialogNumeric.h"
+#include "dialogs/GUIDialogKaiToast.h"
 #include "guilib/GUISliderControl.h"
 #include "settings/Settings.h"
 #include "guilib/GUISelectButtonControl.h"
@@ -51,11 +52,14 @@
 #include "utils/TimeUtils.h"
 #include "XBDateTime.h"
 #include "input/ButtonTranslator.h"
-
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 #include <stdio.h>
+
+#ifdef __APPLE__
+#include "linux/LinuxResourceCounter.h"
+#endif
 
 using namespace PVR;
 
@@ -278,13 +282,18 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     {
       g_settings.m_currentVideoSettings.m_SubtitleOn = !g_settings.m_currentVideoSettings.m_SubtitleOn;
       g_application.m_pPlayer->SetSubtitleVisible(g_settings.m_currentVideoSettings.m_SubtitleOn);
-      CStdString sub;
+      CStdString sub, lang;
       if (g_settings.m_currentVideoSettings.m_SubtitleOn)
+      {
         g_application.m_pPlayer->GetSubtitleName(g_application.m_pPlayer->GetSubtitle(),sub);
+        g_application.m_pPlayer->GetSubtitleLanguage(g_application.m_pPlayer->GetSubtitle(),lang);
+        if (sub != lang)
+          sub.Format("%s [%s]", sub.c_str(), lang.c_str());
+      }
       else
         sub = g_localizeStrings.Get(1223);
-      g_application.m_guiDialogKaiToast.QueueNotification(CGUIDialogKaiToast::Info,
-                                                          g_localizeStrings.Get(287), sub, DisplTime, false, MsgTime);
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info,
+                                            g_localizeStrings.Get(287), sub, DisplTime, false, MsgTime);
     }
     return true;
     break;
@@ -326,12 +335,17 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
         g_application.m_pPlayer->SetSubtitleVisible(true);
       }
 
-      CStdString sub;
+      CStdString sub, lang;
       if (g_settings.m_currentVideoSettings.m_SubtitleOn)
+      {
         g_application.m_pPlayer->GetSubtitleName(g_settings.m_currentVideoSettings.m_SubtitleStream,sub);
+        g_application.m_pPlayer->GetSubtitleLanguage(g_settings.m_currentVideoSettings.m_SubtitleStream,lang);
+        if (sub != lang)
+          sub.Format("%s [%s]", sub.c_str(), lang.c_str());
+      }
       else
         sub = g_localizeStrings.Get(1223);
-      g_application.m_guiDialogKaiToast.QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(287), sub, DisplTime, false, MsgTime);
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(287), sub, DisplTime, false, MsgTime);
     }
     return true;
     break;
@@ -407,7 +421,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
       g_application.m_pPlayer->SetAudioStream(g_settings.m_currentVideoSettings.m_AudioStream);    // Set the audio stream to the one selected
       CStdString aud;
       g_application.m_pPlayer->GetAudioStreamName(g_settings.m_currentVideoSettings.m_AudioStream,aud);
-      g_application.m_guiDialogKaiToast.QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(460), aud, DisplTime, false, MsgTime);
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(460), aud, DisplTime, false, MsgTime);
       return true;
     }
     break;
@@ -941,6 +955,15 @@ void CGUIWindowFullScreen::FrameMove()
   }
 }
 
+void CGUIWindowFullScreen::Process(unsigned int currentTime, CDirtyRegionList &dirtyregion)
+{
+  // TODO: This isn't quite optimal - ideally we'd only be dirtying up the actual video render rect
+  //       which is probably the job of the renderer as it can more easily track resizing etc.
+  MarkDirtyRegion();
+  CGUIWindow::Process(currentTime, dirtyregion);
+  m_renderRegion.SetRect(0, 0, (float)g_graphicsContext.GetWidth(), (float)g_graphicsContext.GetHeight());
+}
+
 void CGUIWindowFullScreen::Render()
 {
   if (g_application.m_pPlayer)
@@ -993,6 +1016,9 @@ void CGUIWindowFullScreen::RenderTTFSubtitles()
       float y = g_settings.m_ResInfo[res].iSubtitles - textHeight;
 
       m_subsLayout->RenderOutline(x, y, 0, 0xFF000000, XBFONT_CENTER_X, maxWidth);
+
+      // reset rendering resolution
+      g_graphicsContext.SetRenderingResolution(m_coordsRes, m_needsScaling);
     }
   }
 }

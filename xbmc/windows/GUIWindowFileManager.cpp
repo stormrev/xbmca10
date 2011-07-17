@@ -164,12 +164,10 @@ bool CGUIWindowFileManager::OnAction(const CAction &action)
       }
       return true;
     }
-    if (action.GetID() == ACTION_PARENT_DIR)
+    if (action.GetID() == ACTION_PARENT_DIR ||
+       (action.GetID() == ACTION_NAV_BACK && !m_vecItems[list]->IsVirtualDirectoryRoot()))
     {
-      if (m_vecItems[list]->IsVirtualDirectoryRoot())
-        g_windowManager.PreviousWindow();
-      else
-        GoParentFolder(list);
+      GoParentFolder(list);
       return true;
     }
     if (action.GetID() == ACTION_PLAYER_PLAY)
@@ -179,11 +177,6 @@ bool CGUIWindowFileManager::OnAction(const CAction &action)
         return MEDIA_DETECT::CAutorun::PlayDisc();
 #endif
     }
-  }
-  if (action.GetID() == ACTION_PREVIOUS_MENU)
-  {
-    g_windowManager.PreviousWindow();
-    return true;
   }
   return CGUIWindow::OnAction(action);
 }
@@ -481,6 +474,8 @@ bool CGUIWindowFileManager::Update(int iList, const CStdString &strDirectory)
     pItem->SetIconImage("DefaultAddSource.png");
     pItem->SetLabel(strLabel);
     pItem->SetLabelPreformated(true);
+    pItem->m_bIsFolder = true;
+    pItem->SetSpecialSort(SORT_ON_BOTTOM);
     m_vecItems[iList]->Add(pItem);
   }
   else if (items.IsEmpty() || g_guiSettings.GetBool("filelists.showparentdiritems"))

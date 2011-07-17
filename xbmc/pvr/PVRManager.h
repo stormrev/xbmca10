@@ -23,6 +23,7 @@
 #include "threads/Thread.h"
 #include "utils/Observer.h"
 #include "utils/JobManager.h"
+#include "threads/Event.h"
 #include "windows/GUIWindowPVRCommon.h"
 #include "addons/include/xbmc_pvr_types.h"
 
@@ -407,12 +408,6 @@ namespace PVR
      */
     virtual void Process(void);
 
-    /*!
-     * @brief Disable the pvrmanager if no clients are enabled or active.
-     * @return True if no clients are enabled, false otherwise.
-     */
-    bool DisableIfNoClients(void);
-
   private:
 
     void Cleanup(void);
@@ -525,7 +520,7 @@ namespace PVR
     //@}
 
     CCriticalSection                m_critSectionTriggers;         /*!< critical section for triggered updates */
-    HANDLE                          m_triggerEvent;                /*!< triggers an update */
+    CEvent                          m_triggerEvent;                /*!< triggers an update */
     std::vector<CJob *>             m_pendingUpdates;              /*!< vector of pending pvr updates */
 
     CFileItem *                     m_currentFile;                 /*!< the PVR file that is currently playing */
