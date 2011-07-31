@@ -160,6 +160,7 @@ CFileItem::CFileItem(const CPVREpgInfoTag& tag)
     *GetPVRTimerInfoTag() = *tag.Timer();
   SetLabel(tag.Title());
   m_strLabel2 = tag.Plot();
+  m_dateTime = tag.StartAsLocalTime();
 
   if (!tag.Icon().IsEmpty())
   {

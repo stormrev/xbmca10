@@ -219,6 +219,9 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::Create()
     HandleException(e, "m_pDll->Create");
   }
 
+  if  (!m_initialized)
+    SAFE_DELETE(m_pHelpers);
+
   return m_initialized;
 }
 
@@ -269,7 +272,7 @@ void CAddonDll<TheDll, TheStruct, TheProps>::Destroy()
   }
   delete m_pHelpers;
   m_pHelpers = NULL;
-  delete m_pStruct;
+  free(m_pStruct);
   m_pStruct = NULL;
   delete m_pDll;
   m_pDll = NULL;
