@@ -86,7 +86,7 @@ public:
   CApplication(void);
   virtual ~CApplication(void);
   virtual bool Initialize();
-  virtual void FrameMove();
+  virtual void FrameMove(bool processEvents);
   virtual void Render();
   virtual bool RenderNoPresent();
   virtual void Preflight();
@@ -106,7 +106,9 @@ public:
   void StartUPnPServer();
   void StopUPnPServer();
   void StartPVRManager();
+  void StartEPGManager(void);
   void StopPVRManager();
+  void StopEPGManager(void);
   bool StartEventServer();
   bool StopEventServer(bool bWait, bool promptuser);
   void RefreshEventServer();
@@ -390,15 +392,6 @@ protected:
   std::map<std::string, std::map<int, float> > m_lastAxisMap;
 #endif
 
-  class NotFrameCount
-  {
-    CApplication* ths;
-  public:
-    inline NotFrameCount(CApplication* o) : ths(o) {}
-    inline bool operator!() { return !(ths->m_frameCount); }
-  };
-
-  friend class NotFrameCount;
 };
 
 extern CApplication g_application;

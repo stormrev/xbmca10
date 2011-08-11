@@ -513,13 +513,18 @@ CGUIViewStateVideoMovies::CGUIViewStateVideoMovies(const CFileItemList& items) :
   AddSortMethod(SORT_METHOD_YEAR,562, LABEL_MASKS("%T", "%Y"));
 
   if (items.IsSmartPlayList())
+  {
     AddSortMethod(SORT_METHOD_PLAYLIST_ORDER, 559, LABEL_MASKS("%T", "%R"));
-
-  SetSortMethod(g_settings.m_viewStateVideoNavTitles.m_sortMethod);
+    SetSortMethod(SORT_METHOD_PLAYLIST_ORDER);
+  }
+  else
+    SetSortMethod(g_settings.m_viewStateVideoNavTitles.m_sortMethod);
 
   SetViewAsControl(g_settings.m_viewStateVideoNavTitles.m_viewMode);
 
   SetSortOrder(g_settings.m_viewStateVideoNavTitles.m_sortOrder);
+
+  LoadViewState(items.m_strPath, WINDOW_VIDEO_NAV);
 }
 
 void CGUIViewStateVideoMovies::SaveViewState()
@@ -547,13 +552,18 @@ CGUIViewStateVideoMusicVideos::CGUIViewStateVideoMusicVideos(const CFileItemList
   }
 
   if (items.IsSmartPlayList())
+  {
     AddSortMethod(SORT_METHOD_PLAYLIST_ORDER, 559, LABEL_MASKS("%A - %T", "%Y"));
-
-  SetSortMethod(g_settings.m_viewStateVideoNavMusicVideos.m_sortMethod);
+    SetSortMethod(SORT_METHOD_PLAYLIST_ORDER);
+  }
+  else
+    SetSortMethod(g_settings.m_viewStateVideoNavMusicVideos.m_sortMethod);
 
   SetViewAsControl(g_settings.m_viewStateVideoNavMusicVideos.m_viewMode);
 
   SetSortOrder(g_settings.m_viewStateVideoNavMusicVideos.m_sortOrder);
+
+  LoadViewState(items.m_strPath, WINDOW_VIDEO_NAV);
 }
 
 void CGUIViewStateVideoMusicVideos::SaveViewState()
@@ -572,13 +582,18 @@ CGUIViewStateVideoTVShows::CGUIViewStateVideoTVShows(const CFileItemList& items)
   AddSortMethod(SORT_METHOD_YEAR,562,LABEL_MASKS("%L","%Y","%L","%Y"));
 
   if (items.IsSmartPlayList())
+  {
     AddSortMethod(SORT_METHOD_PLAYLIST_ORDER, 559, LABEL_MASKS("%L", "%M", "%L", "%M"));
-
-  SetSortMethod(g_settings.m_viewStateVideoNavTvShows.m_sortMethod);
+    SetSortMethod(SORT_METHOD_PLAYLIST_ORDER);
+  }
+  else
+    SetSortMethod(g_settings.m_viewStateVideoNavTvShows.m_sortMethod);
 
   SetViewAsControl(g_settings.m_viewStateVideoNavTvShows.m_viewMode);
 
   SetSortOrder(g_settings.m_viewStateVideoNavTvShows.m_sortOrder);
+
+  LoadViewState(items.m_strPath, WINDOW_VIDEO_NAV);
 }
 
 void CGUIViewStateVideoTVShows::SaveViewState()
@@ -604,20 +619,25 @@ CGUIViewStateVideoEpisodes::CGUIViewStateVideoEpisodes(const CFileItemList& item
   else
   { // format here is tvshowtitle - season/episode number. episode title
     AddSortMethod(SORT_METHOD_VIDEO_RATING, 563, LABEL_MASKS("%Z - %H. %T", "%R"));
-    AddSortMethod(SORT_METHOD_MPAA_RATING, 20074, LABEL_MASKS("%Z -%H. %T", "%O"));
+    AddSortMethod(SORT_METHOD_MPAA_RATING, 20074, LABEL_MASKS("%Z - %H. %T", "%O"));
     AddSortMethod(SORT_METHOD_EPISODE,20359,LABEL_MASKS("%Z - %H. %T","%R"));
     AddSortMethod(SORT_METHOD_PRODUCTIONCODE,20368,LABEL_MASKS("%Z - %H. %T","%P"));
     AddSortMethod(SORT_METHOD_DATE,552,LABEL_MASKS("%Z - %H. %T","%J"));
   }
 
   if (items.IsSmartPlayList())
+  {
     AddSortMethod(SORT_METHOD_PLAYLIST_ORDER, 559, LABEL_MASKS("%Z - %H. %T", "%R"));
-
-  SetSortMethod(g_settings.m_viewStateVideoNavEpisodes.m_sortMethod);
+    SetSortMethod(SORT_METHOD_PLAYLIST_ORDER);
+  }
+  else
+    SetSortMethod(g_settings.m_viewStateVideoNavEpisodes.m_sortMethod);
 
   SetViewAsControl(g_settings.m_viewStateVideoNavEpisodes.m_viewMode);
 
   SetSortOrder(g_settings.m_viewStateVideoNavEpisodes.m_sortOrder);
+
+  LoadViewState(items.m_strPath, WINDOW_VIDEO_NAV);
 }
 
 void CGUIViewStateVideoEpisodes::SaveViewState()
