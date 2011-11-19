@@ -25,6 +25,7 @@
 #include "EpgContainer.h"
 #include "EpgDatabase.h"
 #include "pvr/channels/PVRChannel.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "addons/include/xbmc_pvr_types.h"
@@ -114,9 +115,8 @@ CEpgInfoTag::CEpgInfoTag(const EPG_TAG &data) :
 
 CEpgInfoTag::~CEpgInfoTag()
 {
-  m_Epg           = NULL;
-  m_nextEvent     = NULL;
-  m_previousEvent = NULL;
+  if (m_Timer)
+    m_Timer->m_epgInfo = NULL;
 }
 
 bool CEpgInfoTag::operator ==(const CEpgInfoTag& right) const
@@ -480,7 +480,7 @@ bool CEpgInfoTag::IsActive(void) const
   return (m_startTime <= now && m_endTime > now);
 }
 
-bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */, bool bLastUpdate /* = false */)
+bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */)
 {
   bool bReturn = false;
 
@@ -494,7 +494,7 @@ bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */, bool bLastUpdate /* =
     return bReturn;
   }
 
-  int iId = database->Persist(*this, bSingleUpdate, bLastUpdate);
+  int iId = database->Persist(*this, bSingleUpdate);
   if (iId >= 0)
   {
     bReturn = true;

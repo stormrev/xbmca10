@@ -57,13 +57,11 @@ CPVRManager::CPVRManager(void) :
     m_guiInfo(NULL),
     m_triggerEvent(true),
     m_currentFile(NULL),
-    m_database(NULL),
+    m_database(new CPVRDatabase),
     m_bFirstStart(true),
     m_bLoaded(false),
     m_bIsStopping(false),
-    m_loadingProgressDialog(NULL),
-    m_currentRadioGroup(NULL),
-    m_currentTVGroup(NULL)
+    m_loadingProgressDialog(NULL)
 {
   ResetProperties();
 }
@@ -73,6 +71,8 @@ CPVRManager::~CPVRManager(void)
   Stop();
   Cleanup();
 
+  if (m_database)
+    delete m_database;
   CLog::Log(LOGDEBUG,"PVRManager - destroyed");
 }
 
@@ -128,6 +128,9 @@ void CPVRManager::Stop(void)
   /* stop all update threads */
   StopUpdateThreads();
 
+  /* executes the set wakeup command */
+  SetWakeupCommand();
+
   /* unload all data */
   lock.Enter();
   g_EpgContainer.UnregisterObserver(this);
@@ -137,6 +140,31 @@ void CPVRManager::Stop(void)
   m_channelGroups->Unload();
   m_addons->Unload();
   m_bIsStopping = false;
+}
+
+bool CPVRManager::SetWakeupCommand(void)
+{
+  if (!g_guiSettings.GetBool("pvrpowermanagement.enabled"))
+    return false;
+
+  const CStdString strWakeupCommand = g_guiSettings.GetString("pvrpowermanagement.setwakeupcmd", false);
+  if (!strWakeupCommand.IsEmpty())
+  {
+    time_t iWakeupTime;
+    const CDateTime nextEvent = CalcNextEventTime();
+    nextEvent.GetAsTime(iWakeupTime);
+
+    CStdString strExecCommand;
+    strExecCommand.Format("%s %d", strWakeupCommand, iWakeupTime);
+
+    const int iReturn = system(strExecCommand.c_str());
+    if (iReturn != 0)
+      CLog::Log(LOGERROR, "%s - failed to execute wakeup command '%s': %s (%d)", __FUNCTION__, strExecCommand.c_str(), strerror(iReturn), iReturn);
+
+    return iReturn == 0;
+  }
+
+  return false;
 }
 
 bool CPVRManager::StartUpdateThreads(void)
@@ -167,7 +195,6 @@ void CPVRManager::Cleanup(void)
   if (m_timers)        delete m_timers;        m_timers = NULL;
   if (m_recordings)    delete m_recordings;    m_recordings = NULL;
   if (m_channelGroups) delete m_channelGroups; m_channelGroups = NULL;
-  if (m_database)      delete m_database;      m_database = NULL;
   m_triggerEvent.Set();
 }
 
@@ -267,10 +294,6 @@ void CPVRManager::Process(void)
   if (!m_bStop && m_bFirstStart && g_guiSettings.GetInt("pvrplayback.startlast") != START_LAST_CHANNEL_OFF)
     ContinueLastChannel();
 
-  /* check whether all channel icons are cached */
-  m_channelGroups->GetGroupAllRadio()->CacheIcons();
-  m_channelGroups->GetGroupAllTV()->CacheIcons();
-
   CLog::Log(LOGDEBUG, "PVRManager - %s - entering main loop", __FUNCTION__);
 
   /* main loop */
@@ -362,7 +385,6 @@ void CPVRManager::ResetProperties(void)
 {
   if (!g_application.m_bStop)
   {
-    if (!m_database)      m_database      = new CPVRDatabase;
     if (!m_addons)        m_addons        = new CPVRClients;
     if (!m_channelGroups) m_channelGroups = new CPVRChannelGroupsContainer;
     if (!m_recordings)    m_recordings    = new CPVRRecordings;
@@ -371,8 +393,6 @@ void CPVRManager::ResetProperties(void)
   }
 
   m_currentFile           = NULL;
-  m_currentRadioGroup     = NULL;
-  m_currentTVGroup        = NULL;
   m_PreviousChannel[0]    = -1;
   m_PreviousChannel[1]    = -1;
   m_PreviousChannelIndex  = 0;
@@ -401,7 +421,7 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
     pDlgProgress->Progress();
   }
 
-  if (m_addons->IsPlaying())
+  if (m_addons && m_addons->IsPlaying())
   {
     CLog::Log(LOGNOTICE,"PVRManager - %s - stopping playback", __FUNCTION__);
     g_application.getApplicationMessenger().MediaStop();
@@ -423,7 +443,7 @@ void CPVRManager::ResetDatabase(bool bShowProgress /* = true */)
     pDlgProgress->Progress();
   }
 
-  if (m_database->Open())
+  if (m_database && m_database->Open())
   {
     /* clean the EPG database */
     g_EpgContainer.Clear(true);
@@ -585,48 +605,12 @@ void CPVRManager::LoadCurrentChannelSettings()
 
 void CPVRManager::SetPlayingGroup(CPVRChannelGroup *group)
 {
-  CSingleLock lock(m_critSection);
-
-  if (group == NULL)
-    return;
-
-  bool bChanged(false);
-  if (group->IsRadio())
-  {
-    bChanged = m_currentRadioGroup == NULL || *m_currentRadioGroup != *group;
-    m_currentRadioGroup = group;
-  }
-  else
-  {
-    bChanged = m_currentTVGroup == NULL || *m_currentTVGroup != *group;
-    m_currentTVGroup = group;
-  }
-
-  /* set this group as selected group and set channel numbers */
-  if (bChanged)
-    group->SetSelectedGroup();
+  m_channelGroups->Get(group->IsRadio())->SetSelectedGroup(group);
 }
 
 CPVRChannelGroup *CPVRManager::GetPlayingGroup(bool bRadio /* = false */)
 {
-  CSingleTryLock tryLock(m_critSection);
-  if(tryLock.IsOwner())
-  {
-    if (bRadio && !m_currentRadioGroup)
-      SetPlayingGroup((CPVRChannelGroup *) m_channelGroups->GetGroupAllRadio());
-    else if (!bRadio &&!m_currentTVGroup)
-      SetPlayingGroup((CPVRChannelGroup *) m_channelGroups->GetGroupAllTV());
-  }
-
-  return bRadio ? m_currentRadioGroup : m_currentTVGroup;
-}
-
-bool CPVRManager::IsSelectedGroup(const CPVRChannelGroup &group) const
-{
-  CSingleLock lock(m_critSection);
-
-  return (group.IsRadio() && m_currentRadioGroup && *m_currentRadioGroup == group) ||
-      (!group.IsRadio() && m_currentTVGroup && *m_currentTVGroup == group);
+  return m_channelGroups->GetSelectedGroup(bRadio);
 }
 
 bool CPVRRecordingsUpdateJob::DoWork(void)
@@ -908,6 +892,56 @@ int CPVRManager::TranslateIntInfo(DWORD dwInfo) const
   return !m_guiInfo ? 0 : m_guiInfo->TranslateIntInfo(dwInfo);
 }
 
+bool CPVRManager::HasTimers(void) const
+{
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return m_timers ? m_timers->GetNumTimers() > 0 : false;
+}
+
+bool CPVRManager::IsRecording(void) const
+{
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+    return false;
+  lock.Leave();
+
+  return m_recordings ? m_recordings->GetNumRecordings() > 0 : false;
+}
+
+bool CPVRManager::IsIdle(void) const
+{
+  CSingleLock lock(m_critSection);
+  if (!m_bLoaded)
+  {
+    return true;
+  }
+  lock.Leave();
+
+  if (IsRecording()) // pvr recording?
+  {
+    return false;
+  }
+  else // has active timers, etc.?
+  {
+    const CDateTime now = CDateTime::GetUTCDateTime();
+    const CDateTimeSpan idle(0, 0, g_guiSettings.GetInt("pvrpowermanagement.backendidletime"), 0);
+
+    const CDateTime next = CalcNextEventTime();
+    const CDateTimeSpan delta = next - now;
+
+    if (delta < idle)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void CPVRManager::ShowPlayerInfo(int iTimeout)
 {
   CSingleLock lock(m_critSection);
@@ -1023,7 +1057,7 @@ bool CPVRManager::IsJobPending(const char *strJobName) const
 
   for (unsigned int iJobPtr = 0; iJobPtr < m_pendingUpdates.size(); iJobPtr++)
   {
-    if (!strcmp(m_pendingUpdates.at(iJobPtr)->GetType(), "pvr-update-recordings"))
+    if (!strcmp(m_pendingUpdates.at(iJobPtr)->GetType(), strJobName))
     {
       bReturn = true;
       break;
@@ -1125,4 +1159,50 @@ void CPVRManager::ExecutePendingJobs(void)
   }
 
   m_triggerEvent.Reset();
+}
+
+CDateTime CPVRManager::CalcNextEventTime(void) const
+{
+  const CStdString wakeupcmd = g_guiSettings.GetString("pvrpowermanagement.setwakeupcmd", false);
+  const bool dailywakup = g_guiSettings.GetBool("pvrpowermanagement.dailywakeup");
+  const CDateTime now = CDateTime::GetUTCDateTime();
+  const CDateTimeSpan prewakeup(0, 0, g_guiSettings.GetInt("pvrpowermanagement.prewakeup"), 0);
+  const CDateTimeSpan idle(0, 0, g_guiSettings.GetInt("pvrpowermanagement.backendidletime"), 0);
+
+  CDateTime timerwakeuptime;
+  CDateTime dailywakeuptime;
+
+  /* Check next active time */
+  CPVRTimerInfoTag timer;
+  if (Timers()->GetNextActiveTimer(&timer))
+  {
+    const CDateTime start = timer.StartAsUTC();
+
+    if ((start - idle) > now) {
+      timerwakeuptime = start - prewakeup;
+    } else {
+      timerwakeuptime = now + idle;
+    }
+  }
+
+  /* check daily wake up */
+  if (dailywakup)
+  {
+    dailywakeuptime.SetFromDBTime(g_guiSettings.GetString("pvrpowermanagement.dailywakeuptime", false));
+    dailywakeuptime = dailywakeuptime.GetAsUTCDateTime();
+
+    dailywakeuptime.SetDateTime(
+      now.GetYear(), now.GetMonth(), now.GetDay(),
+      dailywakeuptime.GetHour(), dailywakeuptime.GetMinute(), dailywakeuptime.GetSecond()
+    );
+
+    if ((dailywakeuptime - idle) < now)
+    {
+      const CDateTimeSpan oneDay(1,0,0,0);
+      dailywakeuptime += oneDay;
+    }
+  }
+
+  const CDateTime retVal((dailywakeuptime < timerwakeuptime) ? dailywakeuptime : timerwakeuptime);
+  return retVal;
 }

@@ -347,10 +347,9 @@ namespace EPG
     /*!
      * @brief Persist this tag in the database.
      * @param bSingleUpdate True if this is a single update, false if more updates will follow.
-     * @param bLastUpdate True to commit a batch of changes, false otherwise.
      * @return True if the tag was persisted correctly, false otherwise.
      */
-    virtual bool Persist(bool bSingleUpdate = true, bool bLastUpdate = false);
+    virtual bool Persist(bool bSingleUpdate = true);
 
     /*!
      * @return The current progress of this tag.
@@ -369,7 +368,7 @@ namespace EPG
      * @brief Set a timer for this event or NULL to clear it.
      * @param newTimer The new timer value.
      */
-    virtual void SetTimer(const PVR::CPVRTimerInfoTag *newTimer) { m_Timer = newTimer; }
+    virtual void SetTimer(PVR::CPVRTimerInfoTag *newTimer) { m_Timer = newTimer; }
 
     /*!
      * @brief Get a pointer to the timer for event or NULL if there is none.
@@ -433,7 +432,7 @@ namespace EPG
     mutable const CEpgInfoTag *  m_nextEvent;          /*!< the event that will occur after this one */
     mutable const CEpgInfoTag *  m_previousEvent;      /*!< the event that occurred before this one */
 
-    const PVR::CPVRTimerInfoTag *m_Timer;              /*!< a pointer to a timer for this event or NULL if there is none */
+    PVR::CPVRTimerInfoTag *      m_Timer;              /*!< a pointer to a timer for this event or NULL if there is none */
     const CEpg *                 m_Epg;                /*!< the schedule this event belongs to */
   };
 }

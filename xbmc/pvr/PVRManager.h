@@ -247,6 +247,24 @@ namespace PVR
     int GetPreviousChannel(void);
 
     /*!
+     * @brief Check whether there are active timers.
+     * @return True if there are active timers, false otherwise.
+     */
+    bool HasTimers(void) const;
+
+    /*!
+     * @brief Check whether there are active recordings.
+     * @return True if there are active recordings, false otherwise.
+     */
+    bool IsRecording(void) const;
+
+    /*!
+     * @brief Check whether the pvr backend is idle.
+     * @return True if there are no active timers/recordings/wake-ups within the configured time span.
+     */
+    bool IsIdle(void) const;
+
+    /*!
      * @brief Set the current playing group, used to load the right channel.
      * @param group The new group.
      */
@@ -386,13 +404,6 @@ namespace PVR
     void SearchMissingChannelIcons(void);
 
     /*!
-     * @brief Check whether a group is selected.
-     * @param group The group to check.
-     * @return True if it's selected, false otherwise.
-     */
-    bool IsSelectedGroup(const CPVRChannelGroup &group) const;
-
-    /*!
      * @brief Persist the current channel settings in the database.
      */
     void SaveCurrentChannelSettings(void);
@@ -428,6 +439,11 @@ namespace PVR
      * @brief Update all timers.
      */
     void UpdateTimers(void);
+
+    /*!
+     * @brief Calculate next event time (timer or daily wake up)
+     */
+    CDateTime CalcNextEventTime(void) const;
 
     /*!
      * @brief Update all channels.
@@ -502,6 +518,11 @@ namespace PVR
     void ShowProgressDialog(const CStdString &strText, int iProgress);
 
     /*!
+     * @brief Executes "pvrpowermanagement.setwakeupcmd"
+     */
+    bool SetWakeupCommand(void);
+
+    /*!
      * @brief Hide the progress dialog if it's visible.
      */
     void HideProgressDialog(void);
@@ -531,8 +552,6 @@ namespace PVR
     bool                            m_bIsStopping;                 /*!< true while the pvrmanager is being unloaded */
     bool                            m_bIsSwitchingChannels;        /*!< true while switching channels */
     CGUIDialogExtendedProgressBar * m_loadingProgressDialog;       /*!< progress dialog that is displayed while the pvrmanager is loading */
-    CPVRChannelGroup *              m_currentRadioGroup;           /*!< the currently selected radio channel group list */
-    CPVRChannelGroup *              m_currentTVGroup;              /*!< the currently selected TV channel group list */
 
     int                             m_PreviousChannel[2];
     int                             m_PreviousChannelIndex;
