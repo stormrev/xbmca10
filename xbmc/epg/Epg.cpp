@@ -167,6 +167,7 @@ void CEpg::Clear(void)
 {
   CSingleLock lock(m_critSection);
 
+  m_nowActive = NULL;
   for (unsigned int iTagPtr = 0; iTagPtr < size(); iTagPtr++)
     delete at(iTagPtr);
   erase(begin(), end());
@@ -186,6 +187,9 @@ void CEpg::Cleanup(const CDateTime &Time)
   {
     if (at(iPtr)->EndAsUTC() < Time)
     {
+      if (m_nowActive && *m_nowActive == *at(iPtr))
+        m_nowActive = NULL;
+
       delete at(iPtr);
       erase(begin() + iPtr);
       m_bTagsChanged = true;
@@ -516,7 +520,10 @@ bool CEpg::Update(const time_t start, const time_t end, int iUpdateTime)
     bGrabSuccess = LoadFromClients(start, end);
 
   if (bGrabSuccess)
+  {
+    g_PVRManager.ResetPlayingTag();
     m_bLoaded = true;
+  }
   else
     CLog::Log(LOGERROR, "EPG - %s - failed to update table '%s'", __FUNCTION__, Name().c_str());
 
@@ -660,6 +667,9 @@ bool CEpg::FixOverlappingEvents(void)
 
     if (previousTag->StartAsUTC() <= currentTag->StartAsUTC())
     {
+      if (m_nowActive && *m_nowActive == *currentTag)
+        m_nowActive = NULL;
+
       delete currentTag;
       erase(begin() + iPtr);
       bReturn = true;
@@ -683,7 +693,7 @@ bool CEpg::UpdateFromScraper(time_t start, time_t end)
 {
   bool bGrabSuccess = false;
 
-  if (g_PVRManager.IsRunning() && HasPVRChannel() && m_Channel->EPGEnabled() && ScraperName() == "client")
+  if (g_PVRManager.IsStarted() && HasPVRChannel() && m_Channel->EPGEnabled() && ScraperName() == "client")
   {
     if (g_PVRClients && g_PVRClients->GetAddonCapabilities(m_Channel->ClientID()).bSupportsEPG)
     {

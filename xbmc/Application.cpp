@@ -768,9 +768,10 @@ bool CApplication::Create()
     m_splash->Show();
   }
 
+  // The key mappings may already have been loaded by a peripheral
   CLog::Log(LOGINFO, "load keymapping");
-  if (!CButtonTranslator::GetInstance().Load())
-    FatalErrorHandler(false, false, true);
+  if (!CButtonTranslator::GetInstance().Loaded() && !CButtonTranslator::GetInstance().Load())
+      FatalErrorHandler(false, false, true);
 
   int iResolution = g_graphicsContext.GetVideoResolution();
   CLog::Log(LOGINFO, "GUI format %ix%i %s",
@@ -1585,13 +1586,11 @@ void CApplication::StopPVRManager()
   CLog::Log(LOGINFO, "stopping PVRManager");
   StopPlaying();
   g_PVRManager.Stop();
-  g_PVRManager.Cleanup();
 }
 
 void CApplication::StopEPGManager(void)
 {
   g_EpgContainer.Stop();
-  g_EpgContainer.Clear();
 }
 
 void CApplication::DimLCDOnPlayback(bool dim)
