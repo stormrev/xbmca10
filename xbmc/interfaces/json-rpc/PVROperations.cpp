@@ -44,17 +44,21 @@ JSON_STATUS CPVROperations::ChannelSwitch(const CStdString &method, ITransportLa
   }
 
   int iChannelId = (int)parameterObject["channelid"].asInteger();
-  if (iChannelId > 0)
-  {
-    CLog::Log(LOGDEBUG, "JSONRPC: switch to channel '%d'", iChannelId);
-
-    const CPVRChannel *channel = g_PVRChannelGroups->GetByChannelIDFromAll(iChannelId);
-    return g_PVRManager.StartPlayback(channel) ? ACK : InternalError;
-  }
-  else
-  {
+  if (iChannelId <= 0)
     return InvalidParams;
-  }
+
+  CLog::Log(LOGDEBUG, "JSONRPC: switch to channel '%d'", iChannelId);
+
+  const CPVRChannel *channel = g_PVRChannelGroups->GetByChannelIDFromAll(iChannelId);
+  if (channel == NULL)
+    return InternalError;
+
+  CPVRChannel currentChannel;
+  if (g_PVRManager.GetCurrentChannel(currentChannel) && currentChannel.IsRadio() == channel->IsRadio())
+    g_application.getApplicationMessenger().SendAction(CAction(ACTION_CHANNEL_SWITCH, (float)channel->ChannelNumber()));
+  else
+    g_application.getApplicationMessenger().MediaPlay(CFileItem(*channel));
+  return ACK;
 }
 
 JSON_STATUS CPVROperations::ChannelUp(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
@@ -66,17 +70,8 @@ JSON_STATUS CPVROperations::ChannelUp(const CStdString &method, ITransportLayer 
   }
 
   CLog::Log(LOGDEBUG, "JSONRPC: channel up");
-  unsigned int iNewChannelNumber(0);
-  bool bSwitched = g_PVRManager.ChannelUp(&iNewChannelNumber);
-
-  if (bSwitched && iNewChannelNumber > 0)
-  {
-    CLog::Log(LOGDEBUG, "JSONRPC: new channel '%d'", iNewChannelNumber);
-    return ACK;
-  }
-
-  CLog::Log(LOGERROR, "JSONRPC: failed to switch channels");
-  return InternalError;
+  g_application.getApplicationMessenger().SendAction(CAction(ACTION_NEXT_ITEM));
+  return ACK;
 }
 
 JSON_STATUS CPVROperations::ChannelDown(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
@@ -88,17 +83,8 @@ JSON_STATUS CPVROperations::ChannelDown(const CStdString &method, ITransportLaye
   }
 
   CLog::Log(LOGDEBUG, "JSONRPC: channel down");
-  unsigned int iNewChannelNumber(0);
-  bool bSwitched = g_PVRManager.ChannelDown(&iNewChannelNumber);
-
-  if (bSwitched && iNewChannelNumber > 0)
-  {
-    CLog::Log(LOGDEBUG, "JSONRPC: new channel '%d'", iNewChannelNumber);
-    return ACK;
-  }
-
-  CLog::Log(LOGERROR, "JSONRPC: failed to switch channels");
-  return InternalError;
+  g_application.getApplicationMessenger().SendAction(CAction(ACTION_PREV_ITEM));
+  return ACK;
 }
 
 JSON_STATUS CPVROperations::RecordCurrentChannel(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
@@ -201,18 +187,19 @@ JSON_STATUS CPVROperations::ScheduleRecording(const CStdString &method, ITranspo
 
       CPVRTimerInfoTag *newTimer = CPVRTimerInfoTag::CreateFromEpg(*tag);
       bool bCreated = (newTimer != NULL);
+      bool bAdded = false;
 
       if (bCreated)
       {
         CLog::Log(LOGDEBUG, "JSONRPC: recording scheduled");
-        delete newTimer;
-        return ACK;
+        bAdded = CPVRTimers::AddTimer(*newTimer);
       }
       else
       {
         CLog::Log(LOGERROR, "JSONRPC: failed to schedule recording");
-        return InternalError;
       }
+      delete newTimer;
+      return bAdded ? ACK : InternalError;
     }
   }
 

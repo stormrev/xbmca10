@@ -437,9 +437,10 @@ namespace PYXBMC
 
   PyObject* XBMC_GetFreeMem(PyObject *self, PyObject *args)
   {
-    MEMORYSTATUS stat;
-    GlobalMemoryStatus(&stat);
-    return PyInt_FromLong( stat.dwAvailPhys  / ( 1024 * 1024 ) );
+    MEMORYSTATUSEX stat;
+    stat.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&stat);
+    return PyInt_FromLong( stat.ullAvailPhys  / ( 1024 * 1024 ) );
   }
 
   // getCpuTemp() method
@@ -713,11 +714,7 @@ namespace PYXBMC
 
     strPath = CSpecialProtocol::TranslatePath(strText);
 
-#ifdef TARGET_WINDOWS
-    return PyUnicode_DecodeUTF8(strPath.c_str(), strPath.size(), "replace");
-#else
     return Py_BuildValue((char*)"s", strPath.c_str());
-#endif
   }
 
   // getcleanmovietitle function

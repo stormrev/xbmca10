@@ -26,9 +26,13 @@
 #define BOOL XBMC_BOOL 
 #include "WinSystemOSX.h"
 #include "WinEventsOSX.h"
+#include "Application.h"
+#include "guilib/DispResource.h"
+#include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
 #include "settings/GUISettings.h"
 #include "input/KeyboardStat.h"
+#include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "XBMCHelper.h"
 #include "utils/SystemInfo.h"
@@ -41,6 +45,90 @@
 #import <QuartzCore/QuartzCore.h>
 #import <IOKit/graphics/IOGraphicsLib.h>
 #import <Carbon/Carbon.h>   // ShowMenuBar, HideMenuBar
+
+//------------------------------------------------------------------------------------------
+// special object-c class for handling the NSWindowDidMoveNotification callback.
+@interface windowDidMoveNoteClass : NSObject
+{
+  void *m_userdata;
+}
++ initWith: (void*) userdata;
+-  (void) windowDidMoveNotification:(NSNotification*) note;
+@end
+
+@implementation windowDidMoveNoteClass
++ initWith: (void*) userdata;
+{
+    windowDidMoveNoteClass *windowDidMove = [windowDidMoveNoteClass new];
+    windowDidMove->m_userdata = userdata;
+    return [windowDidMove autorelease];
+}
+-  (void) windowDidMoveNotification:(NSNotification*) note;
+{
+  CWinSystemOSX *winsys = (CWinSystemOSX*)m_userdata;
+	if (!winsys)
+    return;
+
+  NSOpenGLContext* context = [NSOpenGLContext currentContext];
+  if (context)
+  {
+    if ([context view])
+    {
+      NSPoint window_origin = [[[context view] window] frame].origin;
+      XBMC_Event newEvent;
+      memset(&newEvent, 0, sizeof(newEvent));
+      newEvent.type = XBMC_VIDEOMOVE;
+      newEvent.move.x = window_origin.x;
+      newEvent.move.y = window_origin.y;
+      g_application.OnEvent(newEvent);
+    }
+  }
+}
+@end
+//------------------------------------------------------------------------------------------
+// special object-c class for handling the NSWindowDidReSizeNotification callback.
+@interface windowDidReSizeNoteClass : NSObject
+{
+  void *m_userdata;
+}
++ initWith: (void*) userdata;
+- (void) windowDidReSizeNotification:(NSNotification*) note;
+@end
+@implementation windowDidReSizeNoteClass
++ initWith: (void*) userdata;
+{
+    windowDidReSizeNoteClass *windowDidReSize = [windowDidReSizeNoteClass new];
+    windowDidReSize->m_userdata = userdata;
+    return [windowDidReSize autorelease];
+}
+- (void) windowDidReSizeNotification:(NSNotification*) note;
+{
+  CWinSystemOSX *winsys = (CWinSystemOSX*)m_userdata;
+	if (!winsys)
+    return;
+  /* placeholder, do not uncomment or you will SDL recurse into death
+  NSOpenGLContext* context = [NSOpenGLContext currentContext];
+  if (context)
+  {
+    if ([context view])
+    {
+      NSSize view_size = [[context view] frame].size;
+      XBMC_Event newEvent;
+      memset(&newEvent, 0, sizeof(newEvent));
+      newEvent.type = XBMC_VIDEORESIZE;
+      newEvent.resize.w = view_size.width;
+      newEvent.resize.h = view_size.height;
+      if (newEvent.resize.w * newEvent.resize.h)
+      {
+        g_application.OnEvent(newEvent);
+        g_windowManager.MarkDirty();
+      }
+    }
+  }
+  */
+}
+@end
+//------------------------------------------------------------------------------------------
 
 
 #define MAX_DISPLAYS 32
@@ -306,7 +394,7 @@ CFDictionaryRef GetMode(int width, int height, double refreshrate, int screenIdx
   double rate;
   RESOLUTION_INFO res;   
   
-  CLog::Log(LOGDEBUG, "GetMode looking for suitable mode with with %d x %d @ %f Hz on display %d\n", width, height, refreshrate, screenIdx);
+  CLog::Log(LOGDEBUG, "GetMode looking for suitable mode with %d x %d @ %f Hz on display %d\n", width, height, refreshrate, screenIdx);
 
   CFArrayRef displayModes = CGDisplayAvailableModes(GetDisplayID(screenIdx));
   
@@ -354,6 +442,8 @@ CWinSystemOSX::CWinSystemOSX() : CWinSystemBase()
   m_glContext = 0;
   m_SDLSurface = NULL;
   m_osx_events = NULL;
+  // check runtime, we only allow this on 10.5+
+  m_can_display_switch = (floor(NSAppKitVersionNumber) >= 949);
 }
 
 CWinSystemOSX::~CWinSystemOSX()
@@ -373,11 +463,37 @@ bool CWinSystemOSX::InitWindowSystem()
   
   m_osx_events = new CWinEventsOSX();
 
+  if (m_can_display_switch)
+    CGDisplayRegisterReconfigurationCallback(DisplayReconfigured, (void*)this);
+
+  NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+  windowDidMoveNoteClass *windowDidMove;
+  windowDidMove = [windowDidMoveNoteClass initWith: this];
+  [center addObserver:windowDidMove
+    selector:@selector(windowDidMoveNotification:)
+    name:NSWindowDidMoveNotification object:nil];
+  m_windowDidMove = windowDidMove;
+
+
+  windowDidReSizeNoteClass *windowDidReSize;
+  windowDidReSize = [windowDidReSizeNoteClass initWith: this];
+  [center addObserver:windowDidReSize
+    selector:@selector(windowDidReSizeNotification:)
+    name:NSWindowDidResizeNotification object:nil];
+  m_windowDidReSize = windowDidReSize;
+
   return true;
 }
 
 bool CWinSystemOSX::DestroyWindowSystem()
 {  
+  NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+  [center removeObserver:(windowDidMoveNoteClass*)m_windowDidMove name:NSWindowDidMoveNotification object:nil];
+  [center removeObserver:(windowDidReSizeNoteClass*)m_windowDidReSize name:NSWindowDidResizeNotification object:nil];
+
+  if (m_can_display_switch)
+    CGDisplayRemoveReconfigurationCallback(DisplayReconfigured, (void*)this);
+
   delete m_osx_events;
   m_osx_events = NULL;
 
@@ -548,10 +664,15 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     // FullScreen Mode
     NSOpenGLContext* newContext = NULL;
 
-    // check runtime, we only allow this on 10.5+
-    if (floor(NSAppKitVersionNumber) >= 949)
+    if (m_can_display_switch)
     {
-      //switch videomode
+      // send pre-configuration change now and do not
+      //  wait for switch videomode callback. This gives just
+      //  a little more advanced notice of the display pre-change.
+      if (g_guiSettings.GetBool("videoplayer.adjustrefreshrate"))
+        CheckDisplayChanging(kCGDisplayBeginConfigurationFlag);
+
+      // switch videomode
       SwitchToVideoMode(res.iWidth, res.iHeight, res.fRefreshRate, res.iScreen);
     }
 
@@ -755,8 +876,7 @@ void CWinSystemOSX::UpdateResolutions()
     g_settings.m_ResInfo.push_back(res);
   }
   
-  // check runtime, we only allow this on 10.5+
-  if (floor(NSAppKitVersionNumber) >= 949)
+  if (m_can_display_switch)
   {
     //now just fill in the possible reolutions for the attached screens
     //and push to the m_ResInfo vector
@@ -922,6 +1042,8 @@ void CWinSystemOSX::EnableVSync(bool enable)
 
 bool CWinSystemOSX::SwitchToVideoMode(int width, int height, double refreshrate, int screenIdx)
 {
+  // SwitchToVideoMode will not return until the display has actually switched over.
+  // This can take several seconds.
   if( screenIdx >= GetNumScreens())
     return false;
 
@@ -1092,6 +1214,25 @@ bool CWinSystemOSX::Hide()
   return true;
 }
 
+void CWinSystemOSX::OnMove(int x, int y)
+{
+  Cocoa_CVDisplayLinkUpdate();
+}
+
+void CWinSystemOSX::Register(IDispResource *resource)
+{
+  CSingleLock lock(m_resourceSection);
+  m_resources.push_back(resource);
+}
+
+void CWinSystemOSX::Unregister(IDispResource* resource)
+{
+  CSingleLock lock(m_resourceSection);
+  std::vector<IDispResource*>::iterator i = find(m_resources.begin(), m_resources.end(), resource);
+  if (i != m_resources.end())
+    m_resources.erase(i);
+}
+
 bool CWinSystemOSX::Show(bool raise)
 {
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
@@ -1165,6 +1306,53 @@ int CWinSystemOSX::GetNumScreens()
 {
   int numDisplays = [[NSScreen screens] count];
   return(numDisplays);
+}
+
+void CWinSystemOSX::CheckDisplayChanging(u_int32_t flags)
+{
+  if (flags)
+  {
+    CSingleLock lock(m_resourceSection);
+    // tell any shared resources
+    if (flags & kCGDisplayBeginConfigurationFlag)
+    {
+      CLog::Log(LOGDEBUG, "CWinSystemOSX::CheckDisplayChanging:OnLostDevice");
+      for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
+        (*i)->OnLostDevice();
+    }
+    if (flags & kCGDisplaySetModeFlag)
+    {
+      CLog::Log(LOGDEBUG, "CWinSystemOSX::CheckDisplayChanging:OnResetDevice");
+      for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
+        (*i)->OnResetDevice();
+    }
+  }
+}
+
+void CWinSystemOSX::DisplayReconfigured(CGDirectDisplayID display, 
+  CGDisplayChangeSummaryFlags flags, void* userData)
+{
+  CWinSystemOSX *winsys = (CWinSystemOSX*)userData;
+	if (!winsys)
+    return;
+
+  if (flags & kCGDisplaySetModeFlag || flags & kCGDisplayBeginConfigurationFlag)
+  {
+    // pre/post-reconfiguration changes
+    RESOLUTION res = g_graphicsContext.GetVideoResolution();
+    NSScreen* pScreen = [[NSScreen screens] objectAtIndex:g_settings.m_ResInfo[res].iScreen];
+    if (pScreen)
+    {
+      CGDirectDisplayID xbmc_display = GetDisplayIDFromScreen(pScreen);
+      if (xbmc_display == display)
+      {
+        // we only respond to changes on the display we are running on.
+        CSingleLock lock(winsys->m_resourceSection);
+        CLog::Log(LOGDEBUG, "CWinSystemOSX::DisplayReconfigured");
+        winsys->CheckDisplayChanging(flags);
+      }
+    }
+  }
 }
 
 #endif
