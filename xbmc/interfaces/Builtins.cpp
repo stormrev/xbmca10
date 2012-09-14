@@ -54,6 +54,7 @@
 #include "utils/URIUtils.h"
 #include "Util.h"
 #include "URL.h"
+#include "pvr/PVRManager.h"
 
 #include "filesystem/PluginDirectory.h"
 #ifdef HAS_FILESYSTEM_RAR
@@ -92,6 +93,7 @@
 using namespace std;
 using namespace XFILE;
 using namespace ADDON;
+using namespace PVR;
 
 #ifdef HAS_DVD_DRIVE
 using namespace MEDIA_DETECT;
@@ -213,6 +215,7 @@ const BUILT_IN commands[] = {
 #endif
   { "VideoLibrary.Search",        false,  "Brings up a search dialog which will search the library" },
   { "ToggleDebug",                false,  "Enables/disables debug mode" },
+  { "ToggleAddonEnabled",         true,   "Enables/disables an add-on" },
 };
 
 bool CBuiltins::HasCommand(const CStdString& execString)
@@ -1619,6 +1622,29 @@ int CBuiltins::Execute(const CStdString& execString)
     bool debug = g_guiSettings.GetBool("debug.showloginfo");
     g_guiSettings.SetBool("debug.showloginfo", !debug);
     g_advancedSettings.SetDebugMode(!debug);
+  }
+  else if (execute.Equals("toggleaddonenabled") && params.size() == 1)
+  {
+    AddonPtr addon;
+    if (CAddonMgr::Get().GetAddon(params[0], addon))
+    {
+      bool enable = !addon->Enabled();
+      CLog::Log(LOGDEBUG, "%s - %s add-on '%s'", __FUNCTION__, enable ? "enabling" : "disabling", addon->Name().c_str());
+
+      // enable/disable in the addon db
+      CAddonDatabase database;
+      database.Open();
+      database.DisableAddon(addon->ID(), !enable);
+      database.Close();
+
+      // reset pvrmanager
+      if (addon->Type() == ADDON_PVRDLL && g_PVRManager.IsStarted())
+        g_PVRManager.Start();
+    }
+    else
+    {
+      CLog::Log(LOGDEBUG, "%s - add-on '%s' was not found", __FUNCTION__, params[0].c_str());
+    }
   }
   else
     return -1;
