@@ -11,6 +11,10 @@
 HOME=$(shell echo ~)
 #where your tarballs go
 TARBALLS=$(HOME)/tarballs
+TMP=$(HOME)/tmp
+
+#wget-command to download files
+WGET=wget --no-check-certificate
 
 ifeq ($(shell uname -m),armv7l)
 #
@@ -41,7 +45,7 @@ XBMCPREFIX=/allwinner/xbmc-pvr-bin
 TOOLCHAIN=/usr/arm-linux-gnueabi
 
 export HOST=arm-linux-gnueabi
-export BUILD=i686-linux
+export BUILD=armel-linux
 export CROSS_COMPILE=${HOST}-
 
 endif
@@ -77,7 +81,7 @@ ${RLINK_PATH} \
 -L${SDKSTAGE}/usr/lib \
 -L${SDKSTAGE}/usr/lib/arm-linux-gnueabi
  
-export CFLAGS=-pipe -O3 -mtune=cortex-a8 -D__ARM_NEON__ -DALLWINNERA10
+export CFLAGS=-pipe -O3 -mfloat-abi=softfp -mtune=cortex-a8 -mcpu=cortex-a8 -D__ARM_NEON__ -DALLWINNERA10
 export CFLAGS+=$(CEDARINCLUDES) $(GLESINCLUDES)
 export CFLAGS+=\
 -isystem${XBMCPREFIX}/include \
@@ -99,7 +103,7 @@ export OBJDUMP=${CROSS_COMPILE}objdump
 export PKG_CONFIG_LIBDIR=${PREFIX}/lib/pkgconfig:${SDKSTAGE}/lib/pkgconfig:${SDKSTAGE}/usr/lib/pkgconfig:${SDKSTAGE}/usr/lib/arm-linux-gnueabi/pkgconfig:${SDKSTAGE}/usr/share/pkgconfig:${SDKSTAGE}/usr/local/lib/pkgconfig
 export PKG_CONFIG_PATH=${PREFIX}/bin/pkg-config
 export PYTHON_VERSION=2.7
-export PATH:=${PREFIX}/bin:${TOOLCHAIB}/bin:$(PATH)
+export PATH:=${PREFIX}/bin:${TOOLCHAIN}/bin:$(PATH)
 export TEXTUREPACKER_NATIVE_ROOT=/usr
 export PYTHON_LDFLAGS=-L${SDKSTAGE}/usr/lib -lpython$(PYTHON_VERSION)
 export PYTHON_CPPFLAGS=-I${SDKSTAGE}/usr/include/python$(PYTHON_VERSION)

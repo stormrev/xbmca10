@@ -33,7 +33,7 @@ all: .installed
 	touch $@	
 	
 $(TARBALLS)/$(TARBALL1):
-	wget $(LOCATION1)/$(TARBALL1) -O $(TARBALLS)/$(TARBALL1)
+	$(WGET) $(LOCATION1)/$(TARBALL1) -O $(TARBALLS)/$(TARBALL1)
 	
 .lib: $(TARBALLS)/$(TARBALL2)
 	rm -rf tmp lib
@@ -49,10 +49,7 @@ $(TARBALLS)/$(TARBALL1):
 
 $(TARBALLS)/$(TARBALL2):
 	install -d $(TARBALLS)
-	wget $(LOCATION2) -O $(TARBALLS)/$(TARBALL2)
+	$(WGET) $(LOCATION2) -O $(TARBALLS)/$(TARBALL2)
 	
 clean:
 	rm -rf .installed .lib lib .include include
-	
-	
-	

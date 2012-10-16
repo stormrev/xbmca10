@@ -28,7 +28,7 @@ $(TARGET) : .extracted $(OBJS)
 	$(AR) cq $(TARGET) $(OBJS)
 	
 .extracted: $(TARBALLS)/$(TARBALL)
-	rm -rf tmp	
+	rm -rf tmp
 	mkdir tmp
 	( cd tmp &&\
 	  tar xvfz $(TARBALLS)/$(TARBALL) &&\
@@ -41,7 +41,7 @@ $(TARGET) : .extracted $(OBJS)
 	
 $(TARBALLS)/$(TARBALL):
 	install -d $(TARBALLS)
-	wget $(URL) -O $(TARBALLS)/$(TARBALL)
+	$(WGET) $(URL) -O $(TARBALLS)/$(TARBALL)
 
 clean:
 	rm -f $(TARGET) $(OBJS)

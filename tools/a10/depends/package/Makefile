@@ -12,8 +12,10 @@ all: $(TARBALL)
 $(TARBALL): root/DEBIAN/control $(XBMCPREFIX)/lib/xbmc/xbmc.bin README
 	(	cd root &&\
 		rm -rf $(LCLPREFIX) &&\
-		tar cf /tmp/tmp.tar $(XBMCPREFIX) &&\
-		tar xf /tmp/tmp.tar &&\
+		rm -rf $(TMP)/debpackagetmp
+		mkdir $(TMP)/debpackagetmp
+		tar cf $(TMP)/debpackagetmp/tmp.tar $(XBMCPREFIX) &&\
+		tar xf $(TMP)/debpackagetmp/tmp.tar &&\
 		rm -rf $(LCLPREFIX)/include &&\
 		rm -rf $(LCLPREFIX)/lib/pkgconfig &&\
 		rm -f  $(LCLPREFIX)/lib/*.a &&\
@@ -25,4 +27,4 @@ $(TARBALL): root/DEBIAN/control $(XBMCPREFIX)/lib/xbmc/xbmc.bin README
 clean:
 	rm -rf root/$(LCLPREFIX)
 	rm -f $(TARBALL) $(DEB)
-
+	rm -rf $(TMP)/debpackagetmp

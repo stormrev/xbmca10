@@ -17,7 +17,13 @@ CONFIGURE=./configure \
 
 SRC=../../../../
 
-all:
-	(cd $(SRC); ./bootstrap)
-	(cd $(SRC); $(CONFIGURE))
+all: dep
 	(cd $(SRC); make)
+
+dep: bootstrap configure
+
+bootstrap:
+	(cd $(SRC); ./bootstrap)
+
+configure:
+	(cd $(SRC); $(CONFIGURE))
