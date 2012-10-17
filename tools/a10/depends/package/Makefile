@@ -11,9 +11,8 @@ all: $(TARBALL)
 
 $(TARBALL): root/DEBIAN/control $(XBMCPREFIX)/lib/xbmc/xbmc.bin README
 	(	cd root &&\
-		rm -rf $(LCLPREFIX) &&\
-		rm -rf $(TMP)/debpackagetmp
-		mkdir $(TMP)/debpackagetmp
+		rm -rf $(TMP)/debpackagetmp &&\
+		mkdir $(TMP)/debpackagetmp &&\
 		tar cf $(TMP)/debpackagetmp/tmp.tar $(XBMCPREFIX) &&\
 		tar xf $(TMP)/debpackagetmp/tmp.tar &&\
 		rm -rf $(LCLPREFIX)/include &&\
