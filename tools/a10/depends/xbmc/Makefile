@@ -20,6 +20,9 @@ SRC=../../../../
 all: dep
 	(cd $(SRC); make)
 
+bin-only:
+	(cd $(SRC); make)
+
 dep: bootstrap configure
 
 bootstrap:
