@@ -20,7 +20,7 @@
  */
 #include "system.h"
 
-#ifdef HAS_EGLGLES
+#if defined(HAS_EGLGLES) || defined(ALLWINNERA10)
 
 #include "WinSystemGLES.h"
 #include "filesystem/SpecialProtocol.h"
