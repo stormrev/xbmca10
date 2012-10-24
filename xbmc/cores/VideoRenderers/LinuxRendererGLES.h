@@ -91,7 +91,8 @@ enum RenderMethod
   RENDER_POT    = 0x010,
   RENDER_OMXEGL = 0x040,
   RENDER_CVREF  = 0x080,
-  RENDER_BYPASS = 0x100
+  RENDER_A10BUF = 0x100,
+  RENDER_BYPASS = 0x400
 };
 
 enum RenderQuality
@@ -160,6 +161,10 @@ public:
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   virtual void         AddProcessor(CDVDVideoCodecVideoToolBox* vtb, DVDVideoPicture *picture);
 #endif
+#ifdef ALLWINNERA10
+  virtual void         AddProcessor(struct A10VideoBuffer *pVidBuff);
+#endif
+
 protected:
   virtual void Render(DWORD flags, int index);
 
@@ -247,6 +252,9 @@ protected:
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   struct __CVBuffer *cvBufferRef;
+#endif
+#ifdef ALLWINNERA10
+  struct A10VideoBuffer *a10buffer;
 #endif
 
   };

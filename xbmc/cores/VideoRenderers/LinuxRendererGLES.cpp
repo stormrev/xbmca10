@@ -55,6 +55,10 @@
 #include "osx/DarwinUtils.h"
 #endif
 
+#ifdef ALLWINNERA10
+#include "DVDCodecs/Video/DVDVideoCodecA10.h"
+#endif
+
 using namespace Shaders;
 
 CLinuxRendererGLES::YUVBUFFER::YUVBUFFER()
@@ -79,6 +83,9 @@ CLinuxRendererGLES::CLinuxRendererGLES()
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
     m_buffers[i].cvBufferRef = NULL;
+#endif
+#ifdef ALLWINNERA10
+    m_buffers[i].a10buffer = NULL;
 #endif
   }
 
@@ -202,6 +209,12 @@ int CLinuxRendererGLES::GetImage(YV12Image *image, int source, bool readonly)
   }
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   if (m_renderMethod & RENDER_CVREF )
+  {
+    return source;
+  }
+#endif
+#ifdef ALLWINNERA10
+  if (m_renderMethod & RENDER_A10BUF )
   {
     return source;
   }
@@ -414,8 +427,25 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
     glClear(GL_COLOR_BUFFER_BIT);
 
     g_graphicsContext.EndPaint();
+#if !defined(ALLWINNERA10)
     glFinish();
+#endif
     return;
+  }
+  else if (m_renderMethod & RENDER_A10BUF)
+  {
+    ManageDisplay();
+    ManageTextures();
+
+    g_graphicsContext.BeginPaint();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClearColor(1.0/255, 2.0/255, 3.0/255, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0, 0, 0, 0);
+
+    g_graphicsContext.EndPaint();
   }
 
   // this needs to be checked after texture validation
@@ -430,6 +460,14 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   }
   if (buf.image.flags==0)
     return;
+
+  if (m_renderMethod & RENDER_A10BUF)
+  {
+    A10Render(buf.a10buffer, m_sourceRect, m_destRect);
+    m_iLastRenderBuffer = index;
+    VerifyGLState();
+    return;
+  }
 
   ManageDisplay();
   ManageTextures();
@@ -480,7 +518,7 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   glEnable(GL_BLEND);
 
   g_graphicsContext.EndPaint();
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(ALLWINNERA10)
   glFinish();
 #endif
 }
@@ -618,6 +656,12 @@ void CLinuxRendererGLES::LoadShaders(int field)
       {
         CLog::Log(LOGNOTICE, "GL: Using CoreVideoRef RGBA render method");
         m_renderMethod = RENDER_CVREF;
+        break;
+      }
+      else if (CONF_FLAGS_FORMAT_MASK(m_iFlags) == CONF_FLAGS_FORMAT_A10BUF)
+      {
+        CLog::Log(LOGNOTICE, "using A10 render method");
+        m_renderMethod = RENDER_A10BUF;
         break;
       }
       #if defined(TARGET_DARWIN_IOS)
@@ -1316,11 +1360,14 @@ void CLinuxRendererGLES::UploadYV12Texture(int source)
   YUVFIELDS& fields =  buf.fields;
 
 
+  if (   !(im->flags&IMAGE_FLAG_READY)
 #if defined(HAVE_LIBOPENMAX)
-  if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].openMaxBuffer)
-#else
-  if (!(im->flags&IMAGE_FLAG_READY))
+      ||  m_buffers[source].openMaxBuffer)
 #endif
+#ifdef ALLWINNERA10
+      ||  m_buffers[source].a10buffer
+#endif
+     )
   {
     m_eventTexturesDone[source]->Set();
     return;
@@ -1883,6 +1930,13 @@ void CLinuxRendererGLES::AddProcessor(CDVDVideoCodecVideoToolBox* vtb, DVDVideoP
   CVBufferRetain(buf.cvBufferRef);
 }
 #endif
+#ifdef ALLWINNERA10
+void CLinuxRendererGLES::AddProcessor(struct A10VideoBuffer *buffer)
+{
+  YUVBUFFER &buf = m_buffers[NextYV12Texture()];
 
+  buf.a10buffer = buffer;
+}
+#endif
 
 #endif
