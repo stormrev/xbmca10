@@ -174,10 +174,10 @@ CUPnPServer::SetupIcons()
 {
     NPT_String file_root = CSpecialProtocol::TranslatePath("special://xbmc/media/").c_str();
     AddIcon(
-        PLT_DeviceIcon("image/png", 256, 256, 32, "/icon.png"),
+        PLT_DeviceIcon("image/png", 256, 256, 24, "/icon-flat-256x256.png"),
         file_root);
     AddIcon(
-        PLT_DeviceIcon("image/png", 32, 32, 32, "/icon32x32.png"),
+        PLT_DeviceIcon("image/png", 120, 120, 24, "/icon-flat-120x120.png"),
         file_root);
     return NPT_SUCCESS;
 }
@@ -237,10 +237,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
             goto failure;
         }
 
-    } else if (path.StartsWith("addons://"))
-        // don't serve addon listings for now
-        goto failure;
-      else {
+    } else {
         // db path handling
         NPT_String file_path, share_name;
         file_path = item->GetPath();
@@ -622,6 +619,14 @@ CUPnPServer::BuildResponse(PLT_ActionReference&          action,
     }
     if (!thumb_loader.IsNull()) {
         thumb_loader->Initialize();
+    }
+
+    // this isn't pretty but needed to properly hide the addons node from clients
+    if (items.GetPath().Left(7) == "library") {
+        for (int i=0; i<items.Size(); i++) {
+            if (items[i]->GetPath().Left(6) == "addons")
+                items.Remove(i);
+        }
     }
 
     // won't return more than UPNP_MAX_RETURNED_ITEMS items at a time to keep things smooth
