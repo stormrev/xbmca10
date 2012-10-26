@@ -39,7 +39,7 @@ all: .installed
 	
 $(TARBALLS)/$(TARBALL1):
 	$(WGET) $(LOCATION1)/$(TARBALL1) -O $(TARBALLS)/$(TARBALL1)
-	
+
 .lib: $(TARBALLS)/$(TARBALL2)
 	rm -rf tmp lib
 	mkdir tmp

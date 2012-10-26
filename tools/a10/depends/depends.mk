@@ -11,13 +11,11 @@
 HOME=$(shell echo ~)
 #where your tarballs go
 TARBALLS=$(HOME)/tarballs
-TMP=$(HOME)/tmp
+#whether to compile for armhf
+USEARMHF=1
 
 #wget-command to download files
 WGET=wget --no-check-certificate
-
-#whether to compile for armhf
-USEARMHF=1
 
 #
 # armhf notes:
@@ -53,14 +51,14 @@ else
 #
 
 #where is your arm rootfs
-SDKSTAGE=/root/rootfs
+SDKSTAGE=$(HOME)/rootfs
 #where is your xbmc install root 
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
 #where is your toolchain
 TOOLCHAIN=/usr/arm-linux-gnueabi$(HF)
 
 export HOST=arm-linux-gnueabi$(HF)
-export BUILD=armel-linux
+export BUILD=amd64-linux
 export CROSS_COMPILE=${HOST}-
 
 endif
@@ -78,7 +76,7 @@ export CEDARINCLUDES=\
 	-I$(CEDARDIR) \
 	-I$(CEDARDIR)/adapter \
 	-I$(CEDARDIR)/adapter/cdxalloc \
-        -I$(CEDARDIR)/adapter/avheap \
+	-I$(CEDARDIR)/adapter/avheap \
 	-I$(CEDARDIR)/fbm \
 	-I$(CEDARDIR)/libcedarv \
 	-I$(CEDARDIR)/libvecore \
@@ -87,7 +85,7 @@ export CEDARINCLUDES=\
 #vecore,cedarxalloc taken from $(XBMCPREFIX)/lib
 ifeq ($(USEARMHF), 1)
 export CEDARLIBS=-L$(CEDARDIR) -lcedarv -lvecore
-else	
+else
 export CEDARLIBS=-L$(CEDARDIR) -lcedarv -lvecore -lcedarxalloc
 endif
 
@@ -107,12 +105,6 @@ else
 export CFLAGS=-pipe -O3 -mfloat-abi=softfp -mtune=cortex-a8 -mcpu=cortex-a8 -D__ARM_NEON__ -DALLWINNERA10
 endif
 export CFLAGS+=$(CEDARINCLUDES) $(GLESINCLUDES)
-#export CFLAGS+=\
-#-I${XBMCPREFIX}/include \
-#-I$(SDKSTAGE)/usr/local/include \
-#-I${SDKSTAGE}/usr/include \
-#-I${SDKSTAGE}/usr/include/arm-linux-gnueabi 
-
 export CFLAGS+=\
 -isystem${XBMCPREFIX}/include \
 -isystem$(SDKSTAGE)/usr/local/include \
