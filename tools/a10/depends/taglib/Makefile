@@ -32,6 +32,3 @@ $(TARBALLS)/$(TARBALL):
 	
 clean:
 	rm -rf .installed .builded .configured .extracted taglib*
-	
-	
-	

@@ -29,9 +29,9 @@ all: .installed
 
 .installed: $(TARGET)
 	install -d $(XBMCPREFIX)/lib
-	ifneq ($(USEARMHF), 1)
+ifneq ($(USEARMHF), 1)
 	cp adapter/cdxalloc/libcedarxalloc.so $(XBMCPREFIX)/lib
-	endif
+endif
 	cp libvecore/libvecore.so $(XBMCPREFIX)/lib
 	touch $@
 
@@ -40,7 +40,7 @@ $(TARGET) : .extracted $(OBJS)
 	$(AR) cq $(TARGET) $(OBJS)
 	
 .extracted: $(TARBALLS)/$(TARBALL)
-	rm -rf tmp
+	rm -rf tmp	
 	mkdir tmp
 	( cd tmp &&\
 	  tar xvfz $(TARBALLS)/$(TARBALL) &&\
@@ -54,7 +54,7 @@ $(TARGET) : .extracted $(OBJS)
 	
 $(TARBALLS)/$(TARBALL):
 	install -d $(TARBALLS)
-	$(WGET) $(URL) -O $(TARBALLS)/$(TARBALL)
+	wget $(URL) -O $(TARBALLS)/$(TARBALL)
 
 clean:
 	rm -f $(TARGET) $(OBJS)

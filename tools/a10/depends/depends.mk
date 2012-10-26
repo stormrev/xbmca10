@@ -53,7 +53,7 @@ else
 #
 
 #where is your arm rootfs
-SDKSTAGE=/home/stefan/allwinner/rootfs$(HF)
+SDKSTAGE=/root/rootfs
 #where is your xbmc install root 
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
 #where is your toolchain
@@ -107,11 +107,17 @@ else
 export CFLAGS=-pipe -O3 -mfloat-abi=softfp -mtune=cortex-a8 -mcpu=cortex-a8 -D__ARM_NEON__ -DALLWINNERA10
 endif
 export CFLAGS+=$(CEDARINCLUDES) $(GLESINCLUDES)
+#export CFLAGS+=\
+#-I${XBMCPREFIX}/include \
+#-I$(SDKSTAGE)/usr/local/include \
+#-I${SDKSTAGE}/usr/include \
+#-I${SDKSTAGE}/usr/include/arm-linux-gnueabi 
+
 export CFLAGS+=\
 -isystem${XBMCPREFIX}/include \
 -isystem$(SDKSTAGE)/usr/local/include \
 -isystem${SDKSTAGE}/usr/include \
--isystem${SDKSTAGE}/usr/include/arm-linux-gnueabi 
+-isystem${SDKSTAGE}/usr/include/arm-linux-gnueabi$(HF)
 export CFLAGS+=${LDFLAGS}
 
 export CXXFLAGS=${CFLAGS}

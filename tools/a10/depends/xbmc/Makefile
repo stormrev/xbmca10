@@ -14,11 +14,15 @@ CONFIGURE=./configure \
 	--disable-openmax \
 	--enable-neon \
 	--enable-gles \
+	--disable-mysql \
 
 SRC=../../../../
 
 all: dep
-	(cd $(SRC); make)
+	(cd $(SRC); make -j$(JOBS))
+
+install-only:
+	(cd $(SRC); make -j$(JOBS) install)
 
 bin-only:
 	(cd $(SRC); make)
