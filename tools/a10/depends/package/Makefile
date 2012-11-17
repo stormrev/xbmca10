@@ -20,7 +20,7 @@ $(TARBALL): root/DEBIAN/control $(XBMCPREFIX)/lib/xbmc/xbmc.bin README
 	)
 	dpkg -b tmp $(DEB)
 	tar cvfz $(TARBALL) README $(DEB)
-	rm -r tmp $(DEB)
+	#rm -r tmp $(DEB)
 
 clean:
 	rm -rf tmp

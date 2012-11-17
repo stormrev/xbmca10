@@ -2,7 +2,7 @@ Section: video
 Priority: optional
 Maintainer: empat zero 
 Package: xbmca10
-Architecture: armel
+Architecture: armhf
 Version: 0.0.1-alpha
 Depends: mesa-utils,
  x11-utils,

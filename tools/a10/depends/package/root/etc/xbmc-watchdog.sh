@@ -20,7 +20,7 @@ stop lightdm
 
 while true
 do
-    su - miniand -c "/allwinner/xbmc-pvr-bin/lib/xbmc/xbmc.bin --standalone -fs --lircdev /var/run/lirc/lircd 2>&1 | logger -t xbmc"
+    su - root -c "/allwinner/xbmc-pvr-binhf/lib/xbmc/xbmc.bin --standalone -fs --lircdev /var/run/lirc/lircd 2>&1 | logger -t xbmc"
     case "$?" in
          0) # user quit. 
 	    	sleep 2 ;;

@@ -45,18 +45,20 @@ export HOST=arm-linux-gnueabi$(HF)
 export BUILD=arm-linux-gnueabi$(HF)
 export CROSS_COMPILE=
 
+
 else
 #
 #cross compile
 #
 
 #where is your arm rootfs
-SDKSTAGE=$(HOME)/rootfs
+SDKSTAGE=/media/iso
 #where is your xbmc install root 
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
 #where is your toolchain
 TOOLCHAIN=/usr/arm-linux-gnueabi$(HF)
 
+export PKG_CONFIG_SYSROOT_DIR=${SDKSTAGE}
 export HOST=arm-linux-gnueabi$(HF)
 export BUILD=amd64-linux
 export CROSS_COMPILE=${HOST}-
