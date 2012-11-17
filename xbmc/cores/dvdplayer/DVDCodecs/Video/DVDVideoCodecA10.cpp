@@ -37,7 +37,7 @@ static long g_cedaropen = 0;
 #define A10ENABLE_WMV3          //ok
 //#define A10ENABLE_MPEG4V1
 //#define A10ENABLE_MPEG4V2
-//#define A10ENABLE_MPEG4V3     //ok for divx3
+#define A10ENABLE_MPEG4V3     //ok for divx3
 //#define A10ENABLE_DIVX4
 //#define A10ENABLE_DIVX5
 //#define A10ENABLE_XVID          //mostly ok
