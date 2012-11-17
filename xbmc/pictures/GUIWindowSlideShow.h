@@ -27,9 +27,10 @@
 #include "threads/Event.h"
 #include "SlideShowPicture.h"
 #include "DllImageLib.h"
-#include "SortFileItem.h"
+#include "utils/SortUtils.h"
 
 class CFileItemList;
+class CVariant;
 
 class CGUIWindowSlideShow;
 
@@ -114,6 +115,7 @@ private:
   void AnnouncePlaylistRemove(int pos);
   void AnnouncePlaylistClear();
   void AnnouncePlaylistAdd(const CFileItemPtr& item, int pos);
+  void AnnouncePropertyChanged(const std::string &strProperty, const CVariant &value);
 
   int m_iCurrentSlide;
   int m_iNextSlide;

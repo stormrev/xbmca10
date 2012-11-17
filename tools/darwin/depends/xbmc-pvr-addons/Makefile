@@ -5,12 +5,12 @@ XBMC_ADDONSDIR=../../../../addons
 
 # lib name, version
 LIBNAME=xbmc-pvr-addons
-VERSION=9e7a5ba2c1b9c32fbb79063c2466122dd2d2aa53
+VERSION=ef09a31abc3e67778d91583dd05ce8455865b2d6
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
 # configuration settings
-CONFIGURE=./configure --prefix=$(PREFIX)
+CONFIGURE=./configure --prefix=$(PREFIX) --enable-addons-with-dependencies
 
 LIBDYLIB=$(SOURCE)/addons/pvr.demo/.libs/libpvrdemo-addon.dylib
 

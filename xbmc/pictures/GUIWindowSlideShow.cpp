@@ -202,6 +202,16 @@ void CGUIWindowSlideShow::AnnouncePlaylistAdd(const CFileItemPtr& item, int pos)
   ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnAdd", item, data);
 }
 
+void CGUIWindowSlideShow::AnnouncePropertyChanged(const std::string &strProperty, const CVariant &value)
+{
+  if (strProperty.empty() || value.isNull())
+    return;
+
+  CVariant data;
+  data["player"]["playerid"] = PLAYLIST_PICTURE;
+  data["property"][strProperty] = value;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
+}
 
 bool CGUIWindowSlideShow::IsPlaying() const
 {
@@ -368,6 +378,8 @@ void CGUIWindowSlideShow::StartSlideShow(bool screensaver)
   m_bSlideShow = true;
   m_iDirection = 1;
   m_bScreensaver = screensaver;
+  if (m_slides->Size())
+    AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
 }
 
 void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &regions)
@@ -689,7 +701,7 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
   case ACTION_PREVIOUS_MENU:
   case ACTION_NAV_BACK:
   case ACTION_STOP:
-    if (m_bSlideShow && m_slides->Size())
+    if (m_slides->Size())
       AnnouncePlayerStop(m_slides->Get(m_iCurrentSlide));
     g_windowManager.PreviousWindow();
     break;
@@ -1030,6 +1042,8 @@ void CGUIWindowSlideShow::Shuffle()
   m_iCurrentSlide = 0;
   m_iNextSlide = 1;
   m_bShuffled = true;
+
+  AnnouncePropertyChanged("shuffled", true);
 }
 
 int CGUIWindowSlideShow::NumSlides() const

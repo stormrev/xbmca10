@@ -535,6 +535,30 @@ bool CPVRClients::CanRecordInstantly(void)
       currentChannel->CanRecord();
 }
 
+bool CPVRClients::CanPauseStream(void) const
+{
+  PVR_CLIENT client;
+
+  if (GetPlayingClient(client))
+  {
+    return m_bIsPlayingRecording || client->CanPauseStream();
+  }
+
+  return false;
+}
+
+bool CPVRClients::CanSeekStream(void) const
+{
+  PVR_CLIENT client;
+
+  if (GetPlayingClient(client))
+  {
+    return m_bIsPlayingRecording || client->CanSeekStream();
+  }
+
+  return false;
+}
+
 PVR_ERROR CPVRClients::GetEPGForChannel(const CPVRChannel &channel, CEpg *epg, time_t start, time_t end)
 {
   PVR_ERROR error(PVR_ERROR_UNKNOWN);
@@ -610,17 +634,17 @@ PVR_ERROR CPVRClients::GetChannelGroupMembers(CPVRChannelGroup *group)
   return error;
 }
 
-bool CPVRClients::HasMenuHooks(int iClientID)
+bool CPVRClients::HasMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat)
 {
   if (iClientID < 0)
     iClientID = GetPlayingClientID();
 
   PVR_CLIENT client;
   return (GetConnectedClient(iClientID, client) &&
-      client->HaveMenuHooks());
+      client->HaveMenuHooks(cat));
 }
 
-bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOKS *hooks)
+bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, PVR_MENUHOOKS *hooks)
 {
   bool bReturn(false);
 
@@ -628,7 +652,7 @@ bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOKS *hooks)
     iClientID = GetPlayingClientID();
 
   PVR_CLIENT client;
-  if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks())
+  if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks(cat))
   {
     *hooks = *(client->GetMenuHooks());
     bReturn = true;
@@ -637,15 +661,50 @@ bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOKS *hooks)
   return bReturn;
 }
 
-void CPVRClients::ProcessMenuHooks(int iClientID)
+void CPVRClients::ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat)
 {
   PVR_MENUHOOKS *hooks = NULL;
+
+  // get client id
+  if (iClientID < 0 && cat == PVR_MENUHOOK_SETTING)
+  {
+    PVR_CLIENTMAP clients;
+    GetConnectedClients(clients);
+
+    if (clients.size() == 1)
+    {
+      iClientID = clients.begin()->first;
+    }
+    else if (clients.size() > 1)
+    {
+      // have user select client
+      CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+      pDialog->Reset();
+      pDialog->SetHeading(19196);
+
+      PVR_CLIENTMAP_ITR itrClients;
+      for (itrClients = clients.begin(); itrClients != clients.end(); itrClients++)
+      {
+        pDialog->Add(itrClients->second->GetBackendName());
+      }
+      pDialog->DoModal();
+
+      int selection = pDialog->GetSelectedLabel();
+      if (selection >= 0)
+      {
+        itrClients = clients.begin();
+        for (int i = 0; i < selection; i++)
+          itrClients++;
+        iClientID = itrClients->first;
+      }
+    }
+  }
 
   if (iClientID < 0)
     iClientID = GetPlayingClientID();
 
   PVR_CLIENT client;
-  if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks())
+  if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks(cat))
   {
     hooks = client->GetMenuHooks();
     std::vector<int> hookIDs;
@@ -837,20 +896,23 @@ bool CPVRClients::UpdateAndInitialiseClients(bool bInitialiseAllClients /* = fal
       }
       else
       {
-        CSingleLock lock(m_critSection);
-        
+        ADDON_STATUS status(ADDON_STATUS_UNKNOWN);
         PVR_CLIENT addon;
-        if (!GetClient(iClientId, addon))
         {
-          CLog::Log(LOGWARNING, "%s - failed to find add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
-          disableAddons.push_back(clientAddon);
-          bDisabled = true;
+          CSingleLock lock(m_critSection);
+          if (!GetClient(iClientId, addon))
+          {
+            CLog::Log(LOGWARNING, "%s - failed to find add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
+            disableAddons.push_back(clientAddon);
+            bDisabled = true;
+          }
         }
+
         // re-check the enabled status. newly installed clients get disabled when they're added to the db
-        else if (addon->Enabled() && !addon->Create(iClientId))
+        if (!bDisabled && addon->Enabled() && (status = addon->Create(iClientId)) != ADDON_STATUS_OK)
         {
-          CLog::Log(LOGWARNING, "%s - failed to create add-on %s", __FUNCTION__, clientAddon->Name().c_str());
-          if (!addon.get() || !addon->DllLoaded())
+          CLog::Log(LOGWARNING, "%s - failed to create add-on %s, status = %d", __FUNCTION__, clientAddon->Name().c_str(), status);
+          if (!addon.get() || !addon->DllLoaded() || status == ADDON_STATUS_PERMANENT_FAILURE)
           {
             // failed to load the dll of this add-on, disable it
             CLog::Log(LOGWARNING, "%s - failed to load the dll for add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
@@ -1258,6 +1320,13 @@ int64_t CPVRClients::GetStreamPosition(void)
   if (GetPlayingClient(client))
     return client->GetStreamPosition();
   return -EINVAL;
+}
+
+void CPVRClients::PauseStream(bool bPaused)
+{
+  PVR_CLIENT client;
+  if (GetPlayingClient(client))
+    client->PauseStream(bPaused);
 }
 
 CStdString CPVRClients::GetCurrentInputFormat(void) const

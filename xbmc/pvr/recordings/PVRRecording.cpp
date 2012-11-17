@@ -24,6 +24,8 @@
 #include "PVRRecordings.h"
 #include "pvr/addons/PVRClients.h"
 #include "utils/StringUtils.h"
+#include "utils/RegExp.h"
+#include "utils/StringUtils.h"
 
 #include "epg/Epg.h"
 
@@ -160,7 +162,7 @@ bool CPVRRecording::IncrementPlayCount()
 bool CPVRRecording::SetLastPlayedPosition(int lastplayedposition)
 {
   PVR_ERROR error;
-  if (g_PVRClients->SupportsRecordingPlayCount(m_iClientId) &&
+  if (g_PVRClients->SupportsLastPlayedPosition(m_iClientId) &&
       !g_PVRClients->SetRecordingLastPlayedPosition(*this, lastplayedposition, &error))
   {
     DisplayError(error);
@@ -171,8 +173,8 @@ bool CPVRRecording::SetLastPlayedPosition(int lastplayedposition)
 
 int CPVRRecording::GetLastPlayedPosition() const
 {
-  int rc = 0;
-  if (g_PVRClients->SupportsRecordingPlayCount(m_iClientId))
+  int rc = -1;
+  if (g_PVRClients->SupportsLastPlayedPosition(m_iClientId))
   {
     rc = g_PVRClients->GetRecordingLastPlayedPosition(*this);
     if (rc < 0)
@@ -241,13 +243,15 @@ void CPVRRecording::UpdatePath(void)
   {
     CStdString strTitle(m_strTitle);
     CStdString strDatetime(m_recordingTime.GetAsSaveString());
-    strTitle.Replace('/','-');
-    strTitle.Remove('?');
+    CStdString strDirectory;
+    CStdString strChannel;
+    strTitle.Replace('/',' ');
 
-    if (m_strDirectory != StringUtils::EmptyString)
-      m_strFileNameAndPath.Format("pvr://recordings/%s/%s/%s.pvr", m_strDirectory.c_str(), strDatetime.c_str(), strTitle.c_str());
-    else
-      m_strFileNameAndPath.Format("pvr://recordings/%s/%s.pvr", strDatetime.c_str(), strTitle.c_str());
+    if (!m_strDirectory.IsEmpty())
+      strDirectory.Format("%s/", m_strDirectory.c_str());
+    if (!m_strChannelName.IsEmpty())
+      strChannel.Format(" (%s)", m_strChannelName.c_str());
+    m_strFileNameAndPath.Format("pvr://recordings/%s%s, TV%s, %s.pvr", strDirectory.c_str(), strTitle.c_str(), strChannel.c_str(), strDatetime.c_str());
   }
 }
 
@@ -257,4 +261,16 @@ const CDateTime &CPVRRecording::RecordingTimeAsLocalTime(void) const
   tmp.SetFromUTCDateTime(m_recordingTime);
 
   return tmp;
+}
+
+CStdString CPVRRecording::GetTitleFromURL(const CStdString &url)
+{
+  CRegExp reg(true);
+  if (reg.RegComp("pvr://recordings/(.*/)*(.*), TV( \\(.*\\))?, "
+      "(19[0-9][0-9]|20[0-9][0-9])[0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].pvr"))
+  {
+    if (reg.RegFind(url.c_str()) >= 0)
+      return reg.GetReplaceString("\\2");
+  }
+  return StringUtils::EmptyString;
 }

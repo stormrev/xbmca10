@@ -16,7 +16,10 @@ KNOWN PROBLEMS WITH HARDWARE RENDERING:
   You can enable it (e.g. for tracking down the problem at kernel level) 
   by setting the environment variable A10AB=1.
 
-- Not all xbmc video playback resolution settings are supported at the moment.
+KNOWN PROBLEMS WITH PVR:
+========================
+
+- only SD-TV tested (since i do not have DVB-S2 hardware)
 
 PLEASE REMEMBER: This is poc.
 

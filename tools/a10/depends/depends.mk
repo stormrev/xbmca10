@@ -40,7 +40,7 @@ SDKSTAGE=/
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
 #where is your toolchain
 TOOLCHAIN=/usr
-
+JOBS=1
 export HOST=arm-linux-gnueabi$(HF)
 export BUILD=arm-linux-gnueabi$(HF)
 export CROSS_COMPILE=
@@ -57,7 +57,7 @@ SDKSTAGE=/media/iso
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
 #where is your toolchain
 TOOLCHAIN=/usr/arm-linux-gnueabi$(HF)
-
+JOBS=4
 export PKG_CONFIG_SYSROOT_DIR=${SDKSTAGE}
 export HOST=arm-linux-gnueabi$(HF)
 export BUILD=amd64-linux

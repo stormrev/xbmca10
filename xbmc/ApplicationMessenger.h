@@ -87,8 +87,7 @@ namespace MUSIC_INFO
 #define TMSG_SETLANGUAGE          311
 #define TMSG_RENDERER_FLUSH       312
 #define TMSG_INHIBITIDLESHUTDOWN  313
-
-#define TMSG_HTTPAPI              400
+#define TMSG_LOADPROFILE          314
 
 #define TMSG_NETWORKMESSAGE         500
 
@@ -204,9 +203,10 @@ public:
   //! \brief Set the currently currently item
   void SetCurrentItem(const CFileItem& item);
 
+  void LoadProfile(unsigned int idx);
+
   CStdString GetResponse();
   int SetResponse(CStdString response);
-  void HttpApi(std::string cmd, bool wait = false);
   void ExecBuiltIn(const CStdString &command, bool wait = false);
 
   void NetworkMessage(DWORD dwMessage, DWORD dwParam = 0);

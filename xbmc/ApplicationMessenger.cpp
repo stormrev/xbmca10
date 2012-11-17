@@ -58,16 +58,11 @@
 #include "guilib/LocalizeStrings.h"
 #include "threads/SingleLock.h"
 
-#ifdef HAS_HTTPAPI
-#include "interfaces/http-api/XBMChttp.h"
-#endif
-
 #include "playlists/PlayList.h"
 #include "FileItem.h"
 
-#include "ThumbLoader.h"
-
 #include "pvr/PVRManager.h"
+#include "windows/GUIWindowLoginScreen.h"
 
 using namespace PVR;
 using namespace std;
@@ -299,7 +294,7 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
 
     case TMSG_INHIBITIDLESHUTDOWN:
       {
-        g_application.InhibitIdleShutdown((bool)pMsg->dwParam1);
+        g_application.InhibitIdleShutdown(pMsg->dwParam1 != 0);
       }
       break;
 
@@ -525,7 +520,7 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       /* don't block external player's access to audio device  */
       if (!CAEFactory::Suspend())
       {
-        CLog::Log(LOGNOTICE, __FUNCTION__, "Failed to suspend AudioEngine before launching external program");
+        CLog::Log(LOGNOTICE, "%s: Failed to suspend AudioEngine before launching external program",__FUNCTION__);
       }
 #if defined( _LINUX) && !defined(TARGET_DARWIN)
       CUtil::RunCommandLine(pMsg->strParam.c_str(), (pMsg->dwParam1 == 1));
@@ -535,42 +530,9 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       /* Resume AE processing of XBMC native audio */
       if (!CAEFactory::Resume())
       {
-        CLog::Log(LOGFATAL, __FUNCTION__, "Failed to restart AudioEngine after return from external player");
+        CLog::Log(LOGFATAL, "%s: Failed to restart AudioEngine after return from external player",__FUNCTION__);
       }
       break;
-
-    case TMSG_HTTPAPI:
-    {
-#ifdef HAS_HTTPAPI
-      if (!m_pXbmcHttp)
-      {
-        m_pXbmcHttp = new CXbmcHttp();
-      }
-      switch (m_pXbmcHttp->xbmcCommand(pMsg->strParam))
-      {
-        case 1:
-          Restart();
-          break;
-
-        case 2:
-          Shutdown();
-          break;
-
-        case 3:
-          Quit();
-          break;
-
-        case 4:
-          Reset();
-          break;
-
-        case 5:
-          RestartApp();
-          break;
-      }
-#endif
-    }
-    break;
 
     case TMSG_EXECUTE_SCRIPT:
 #ifdef HAS_PYTHON
@@ -803,13 +765,14 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
     case TMSG_DISPLAY_SETUP:
     {
       *((bool*)pMsg->lpVoid) = g_application.InitWindow();
-      g_application.ReloadSkin();
+      g_application.SetRenderGUI(true);
     }
     break;
     
     case TMSG_DISPLAY_DESTROY:
     {
       *((bool*)pMsg->lpVoid) = g_application.DestroyWindow();
+      g_application.SetRenderGUI(false);
     }
     break;
 
@@ -825,6 +788,12 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       else
         g_infoManager.SetCurrentItem(*item);
       delete item;
+      break;
+    }
+
+    case TMSG_LOADPROFILE:
+    {
+      CGUIWindowLoginScreen::LoadProfile(pMsg->dwParam1);
       break;
     }
   }
@@ -871,14 +840,6 @@ CStdString CApplicationMessenger::GetResponse()
   return tmp;
 }
 
-void CApplicationMessenger::HttpApi(string cmd, bool wait)
-{
-  SetResponse("");
-  ThreadMessage tMsg = {TMSG_HTTPAPI};
-  tMsg.strParam = cmd;
-  SendMessage(tMsg, wait);
-}
-
 void CApplicationMessenger::ExecBuiltIn(const CStdString &command, bool wait)
 {
   ThreadMessage tMsg = {TMSG_EXECUTE_BUILT_IN};
@@ -889,12 +850,6 @@ void CApplicationMessenger::ExecBuiltIn(const CStdString &command, bool wait)
 void CApplicationMessenger::MediaPlay(string filename)
 {
   CFileItem item(filename, false);
-  if (item.IsAudio())
-    CMusicThumbLoader::FillThumb(item);
-  else
-    CVideoThumbLoader::FillThumb(item);
-  item.FillInDefaultIcon();
-
   MediaPlay(item);
 }
 
@@ -962,14 +917,14 @@ void CApplicationMessenger::PlayListPlayerPlay()
 
 void CApplicationMessenger::PlayListPlayerPlay(int iSong)
 {
-  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY, iSong};
+  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY, (DWORD)iSong};
   SendMessage(tMsg, true);
 }
 
 bool CApplicationMessenger::PlayListPlayerPlaySongId(int songId)
 {
   bool returnState;
-  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY_SONG_ID, songId};
+  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_PLAY_SONG_ID, (DWORD)songId};
   tMsg.lpVoid = (void *)&returnState;
   SendMessage(tMsg, true);
   return returnState;
@@ -1025,7 +980,7 @@ void CApplicationMessenger::PlayListPlayerInsert(int playlist, const CFileItemLi
 
 void CApplicationMessenger::PlayListPlayerRemove(int playlist, int position)
 {
-  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_REMOVE, playlist, position};
+  ThreadMessage tMsg = {TMSG_PLAYLISTPLAYER_REMOVE, (DWORD)playlist, (DWORD)position};
   SendMessage(tMsg, true);
 }
 
@@ -1190,7 +1145,7 @@ void CApplicationMessenger::ExecOS(const CStdString command, bool waitExit)
 
 void CApplicationMessenger::UserEvent(int code)
 {
-  ThreadMessage tMsg = {code};
+  ThreadMessage tMsg = {(DWORD)code};
   SendMessage(tMsg, false);
 }
 
@@ -1203,7 +1158,7 @@ void CApplicationMessenger::Show(CGUIDialog *pDialog)
 
 void CApplicationMessenger::Close(CGUIWindow *window, bool forceClose, bool waitResult /*= true*/, int nextWindowID /*= 0*/, bool enableSound /*= true*/)
 {
-  ThreadMessage tMsg = {TMSG_GUI_WINDOW_CLOSE, nextWindowID};
+  ThreadMessage tMsg = {TMSG_GUI_WINDOW_CLOSE, (DWORD)nextWindowID};
   tMsg.dwParam2 = (DWORD)((forceClose ? 0x01 : 0) | (enableSound ? 0x02 : 0));
   tMsg.lpVoid = window;
   SendMessage(tMsg, waitResult);
@@ -1211,7 +1166,7 @@ void CApplicationMessenger::Close(CGUIWindow *window, bool forceClose, bool wait
 
 void CApplicationMessenger::ActivateWindow(int windowID, const vector<CStdString> &params, bool swappingWindows)
 {
-  ThreadMessage tMsg = {TMSG_GUI_ACTIVATE_WINDOW, windowID, swappingWindows ? 1 : 0};
+  ThreadMessage tMsg = {TMSG_GUI_ACTIVATE_WINDOW, (DWORD)windowID, swappingWindows ? 1u : 0u};
   tMsg.params = params;
   SendMessage(tMsg, true);
 }
@@ -1318,5 +1273,12 @@ void CApplicationMessenger::SetCurrentItem(const CFileItem& item)
   CFileItem* item2 = new CFileItem(item);
   ThreadMessage tMsg = {TMSG_UPDATE_CURRENT_ITEM};
   tMsg.lpVoid = (void*)item2;
+  SendMessage(tMsg, false);
+}
+
+void CApplicationMessenger::LoadProfile(unsigned int idx)
+{
+  ThreadMessage tMsg = {TMSG_LOADPROFILE};
+  tMsg.dwParam1 = idx;
   SendMessage(tMsg, false);
 }

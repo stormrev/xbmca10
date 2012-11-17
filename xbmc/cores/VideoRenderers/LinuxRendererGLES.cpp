@@ -46,6 +46,7 @@
 #include "threads/SingleLock.h"
 #include "RenderCapture.h"
 #include "RenderFormats.h"
+#include "xbmc/Application.h"
 
 #if defined(__ARM_NEON__)
 #include "yuv2rgb.neon.h"
@@ -57,10 +58,6 @@
 #endif
 #ifdef TARGET_DARWIN_IOS
 #include "osx/DarwinUtils.h"
-#endif
-
-#ifdef ALLWINNERA10
-#include "DVDCodecs/Video/DVDVideoCodecA10.h"
 #endif
 
 using namespace Shaders;
@@ -87,9 +84,6 @@ CLinuxRendererGLES::CLinuxRendererGLES()
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
     m_buffers[i].cvBufferRef = NULL;
-#endif
-#ifdef ALLWINNERA10
-    m_buffers[1].a10buffer = NULL;
 #endif
   }
 
@@ -197,6 +191,13 @@ bool CLinuxRendererGLES::Configure(unsigned int width, unsigned int height, unsi
 
   m_RenderUpdateCallBackFn = NULL;
   m_RenderUpdateCallBackCtx = NULL;
+  if ((m_format == RENDER_FMT_BYPASS) && g_application.GetCurrentPlayer())
+  {
+    g_application.m_pPlayer->GetRenderFeatures(m_renderFeatures);
+    g_application.m_pPlayer->GetDeinterlaceMethods(m_deinterlaceMethods);
+    g_application.m_pPlayer->GetDeinterlaceModes(m_deinterlaceModes);
+    g_application.m_pPlayer->GetScalingMethods(m_scalingMethods);
+  }
 
   return true;
 }
@@ -221,12 +222,6 @@ int CLinuxRendererGLES::GetImage(YV12Image *image, int source, bool readonly)
   }
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   if (m_renderMethod & RENDER_CVREF )
-  {
-    return source;
-  }
-#endif
-#ifdef ALLWINNERA10
-  if (m_renderMethod & RENDER_A10BUF )
   {
     return source;
   }
@@ -430,24 +425,6 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
     g_graphicsContext.EndPaint();
     return;
   }
-  else if (m_renderMethod & RENDER_A10BUF)
-  {
-    ManageDisplay();
-    ManageTextures();
-
-    if (m_RenderUpdateCallBackFn)
-      (*m_RenderUpdateCallBackFn)(m_RenderUpdateCallBackCtx, m_sourceRect, m_destRect);
-
-    g_graphicsContext.BeginPaint();
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClearColor(1.0/255, 2.0/255, 3.0/255, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0, 0, 0, 0);
-
-    g_graphicsContext.EndPaint();
-  }
 
   // this needs to be checked after texture validation
   if (!m_bImageReady) return;
@@ -461,14 +438,6 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   }
   if (buf.image.flags==0)
     return;
-
-  if (m_renderMethod & RENDER_A10BUF)
-  {
-    A10Render(buf.a10buffer, m_sourceRect, m_destRect);
-    m_iLastRenderBuffer = index;
-    VerifyGLState();
-    return;
-  }
 
   ManageDisplay();
   ManageTextures();
@@ -553,9 +522,6 @@ unsigned int CLinuxRendererGLES::PreInit()
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   m_formats.push_back(RENDER_FMT_CVBREF);
-#endif
-#ifdef ALLWINNERA10
-  m_formats.push_back(RENDER_FMT_A10BUF);
 #endif
 
   // setup the background colour
@@ -666,12 +632,6 @@ void CLinuxRendererGLES::LoadShaders(int field)
       {
         CLog::Log(LOGNOTICE, "GL: Using CoreVideoRef RGBA render method");
         m_renderMethod = RENDER_CVREF;
-        break;
-      }
-      else if (m_format == RENDER_FMT_A10BUF)
-      {
-        CLog::Log(LOGNOTICE, "using A10 render method");
-        m_renderMethod = RENDER_A10BUF;
         break;
       }
       #if defined(TARGET_DARWIN_IOS)
@@ -1356,6 +1316,7 @@ bool CLinuxRendererGLES::RenderCapture(CRenderCapture* capture)
 
   // new video rect is thumbnail size
   m_destRect.SetRect(0, 0, (float)capture->GetWidth(), (float)capture->GetHeight());
+  MarkDirty();
   syncDestRectToRotatedPoints();//syncs the changed destRect to m_rotatedDestCoords
   // clear framebuffer and invert Y axis to get non-inverted image
   glDisable(GL_BLEND);
@@ -1403,14 +1364,11 @@ void CLinuxRendererGLES::UploadYV12Texture(int source)
   YUVFIELDS& fields =  buf.fields;
 
 
-  if (   !(im->flags&IMAGE_FLAG_READY)
 #if defined(HAVE_LIBOPENMAX)
-      ||  m_buffers[source].openMaxBuffer)
+  if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].openMaxBuffer)
+#else
+  if (!(im->flags&IMAGE_FLAG_READY))
 #endif
-#ifdef ALLWINNERA10
-      ||  m_buffers[source].a10buffer
-#endif
-     )
   {
     m_eventTexturesDone[source]->Set();
     return;
@@ -1869,6 +1827,13 @@ void CLinuxRendererGLES::SetTextureFilter(GLenum method)
 
 bool CLinuxRendererGLES::Supports(ERENDERFEATURE feature)
 {
+  // Player controls render, let it dictate available render features
+  if((m_renderMethod & RENDER_BYPASS))
+  {
+    Features::iterator itr = std::find(m_renderFeatures.begin(),m_renderFeatures.end(), feature);
+    return itr != m_renderFeatures.end();
+  }
+
   if(feature == RENDERFEATURE_BRIGHTNESS)
     return false;
 
@@ -1887,8 +1852,15 @@ bool CLinuxRendererGLES::Supports(ERENDERFEATURE feature)
   if (feature == RENDERFEATURE_NONLINSTRETCH)
     return false;
 
-  if (feature == RENDERFEATURE_ROTATION)
+  if (feature == RENDERFEATURE_STRETCH         ||
+      feature == RENDERFEATURE_CROP            ||
+      feature == RENDERFEATURE_ZOOM            ||
+      feature == RENDERFEATURE_VERTICAL_SHIFT  ||
+      feature == RENDERFEATURE_PIXEL_RATIO     ||
+      feature == RENDERFEATURE_POSTPROCESS     ||
+      feature == RENDERFEATURE_ROTATION)
     return true;
+
 
   return false;
 }
@@ -1900,6 +1872,13 @@ bool CLinuxRendererGLES::SupportsMultiPassRendering()
 
 bool CLinuxRendererGLES::Supports(EDEINTERLACEMODE mode)
 {
+  // Player controls render, let it dictate available deinterlace modes
+  if((m_renderMethod & RENDER_BYPASS))
+  {
+    Features::iterator itr = std::find(m_deinterlaceModes.begin(),m_deinterlaceModes.end(), mode);
+    return itr != m_deinterlaceModes.end();
+  }
+
   if (mode == VS_DEINTERLACEMODE_OFF)
     return true;
 
@@ -1918,6 +1897,13 @@ bool CLinuxRendererGLES::Supports(EDEINTERLACEMODE mode)
 
 bool CLinuxRendererGLES::Supports(EINTERLACEMETHOD method)
 {
+  // Player controls render, let it dictate available deinterlace methods
+  if((m_renderMethod & RENDER_BYPASS))
+  {
+    Features::iterator itr = std::find(m_deinterlaceMethods.begin(),m_deinterlaceMethods.end(), method);
+    return itr != m_deinterlaceMethods.end();
+  }
+
   if(m_renderMethod & RENDER_OMXEGL)
     return false;
 
@@ -1941,6 +1927,13 @@ bool CLinuxRendererGLES::Supports(EINTERLACEMETHOD method)
 
 bool CLinuxRendererGLES::Supports(ESCALINGMETHOD method)
 {
+  // Player controls render, let it dictate available scaling methods
+  if((m_renderMethod & RENDER_BYPASS))
+  {
+    Features::iterator itr = std::find(m_scalingMethods.begin(),m_scalingMethods.end(), method);
+    return itr != m_scalingMethods.end();
+  }
+
   if(method == VS_SCALINGMETHOD_NEAREST
   || method == VS_SCALINGMETHOD_LINEAR)
     return true;
@@ -1950,6 +1943,15 @@ bool CLinuxRendererGLES::Supports(ESCALINGMETHOD method)
 
 EINTERLACEMETHOD CLinuxRendererGLES::AutoInterlaceMethod()
 {
+  // Player controls render, let it pick the auto-deinterlace method
+  if((m_renderMethod & RENDER_BYPASS))
+  {
+    if (m_deinterlaceMethods.size())
+      return ((EINTERLACEMETHOD)m_deinterlaceMethods[0]);
+    else
+      return VS_INTERLACEMETHOD_NONE;
+  }
+
   if(m_renderMethod & RENDER_OMXEGL)
     return VS_INTERLACEMETHOD_NONE;
 
@@ -1979,14 +1981,6 @@ void CLinuxRendererGLES::AddProcessor(struct __CVBuffer *cvBufferRef)
   buf.cvBufferRef = cvBufferRef;
   // retain another reference, this way dvdplayer and renderer can issue releases.
   CVBufferRetain(buf.cvBufferRef);
-}
-#endif
-#ifdef ALLWINNERA10
-void CLinuxRendererGLES::AddProcessor(struct A10VideoBuffer *buffer)
-{
-  YUVBUFFER &buf = m_buffers[NextYV12Texture()];
-
-  buf.a10buffer = buffer;
 }
 #endif
 

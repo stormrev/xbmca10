@@ -39,6 +39,7 @@ class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
 class COpenMaxVideo;
+typedef std::vector<int>     Features;
 
 #define NUM_BUFFERS 3
 
@@ -85,8 +86,7 @@ enum RenderMethod
   RENDER_POT    = 0x010,
   RENDER_OMXEGL = 0x040,
   RENDER_CVREF  = 0x080,
-  RENDER_A10BUF = 0x100,
-  RENDER_BYPASS = 0x400
+  RENDER_BYPASS = 0x100
 };
 
 enum RenderQuality
@@ -157,9 +157,6 @@ public:
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   virtual void         AddProcessor(struct __CVBuffer *cvBufferRef);
-#endif
-#ifdef ALLWINNERA10
-  virtual void         AddProcessor(struct A10VideoBuffer *pVidBuff);
 #endif
 
 protected:
@@ -252,9 +249,6 @@ protected:
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   struct __CVBuffer *cvBufferRef;
 #endif
-#ifdef ALLWINNERA10
-  struct A10VideoBuffer *a10buffer;
-#endif
 
   };
 
@@ -272,6 +266,11 @@ protected:
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;
   ESCALINGMETHOD m_scalingMethod;
   ESCALINGMETHOD m_scalingMethodGui;
+
+  Features m_renderFeatures;
+  Features m_deinterlaceMethods;
+  Features m_deinterlaceModes;
+  Features m_scalingMethods;
 
   // clear colour for "black" bars
   float m_clearColour;
