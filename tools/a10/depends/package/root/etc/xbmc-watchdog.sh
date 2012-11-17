@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#USEHWR="A10HWR=1"
+USEHWR="A10HWR=1"
 
 if [ -d /lib/arm-linux-gnueabihf ]
 then
