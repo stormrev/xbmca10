@@ -25,7 +25,7 @@ install-only:
 	(cd $(SRC); make -j$(JOBS) install)
 
 bin-only:
-	(cd $(SRC); make)
+	(cd $(SRC); make -j$(JOBS))
 
 dep: bootstrap configure
 
