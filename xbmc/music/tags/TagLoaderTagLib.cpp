@@ -169,6 +169,7 @@ bool CTagLoaderTagLib::Load(const string& strFileName, CMusicInfoTag& tag, Embed
   APE::Tag *ape = NULL;
   ASF::Tag *asf = NULL;
   MP4::Tag *mp4 = NULL;
+  ID3v1::Tag *id3v1 = NULL;
   ID3v2::Tag *id3v2 = NULL;
   Ogg::XiphComment *xiph = NULL;
   Tag *generic = NULL;
@@ -186,6 +187,7 @@ bool CTagLoaderTagLib::Load(const string& strFileName, CMusicInfoTag& tag, Embed
     mp4 = mp4File->tag();
   else if (mpegFile)
   {
+    id3v1 = mpegFile->ID3v1Tag(false);
     id3v2 = mpegFile->ID3v2Tag(false);
     ape = mpegFile->APETag(false);
   }
@@ -205,6 +207,8 @@ bool CTagLoaderTagLib::Load(const string& strFileName, CMusicInfoTag& tag, Embed
 
   if (asf)
     ParseASF(asf, art, tag);
+  if (id3v1)
+    ParseID3v1Tag(id3v1, art, tag);
   if (id3v2)
     ParseID3v2Tag(id3v2, art, tag);
   if (generic)
@@ -250,7 +254,7 @@ bool CTagLoaderTagLib::ParseASF(ASF::Tag *asf, EmbeddedArt *art, CMusicInfoTag& 
       else
         tag.SetTrackNumber(atoi(it->second.front().toString().toCString(true)));
     }
-    else if (it->first == "WM/PartOfSet")                tag.SetPartOfSet(it->second.front().toUInt());
+    else if (it->first == "WM/PartOfSet")                tag.SetPartOfSet(atoi(it->second.front().toString().toCString(true)));
     else if (it->first == "WM/Genre")                    SetGenre(tag, GetASFStringList(it->second));
     else if (it->first == "WM/AlbumArtistSortOrder")     {} // Known unsupported, supress warnings
     else if (it->first == "WM/ArtistSortOrder")          {} // Known unsupported, supress warnings
@@ -300,6 +304,19 @@ char POPMtoXBMC(int popm)
   if (popm < 0xc0) return '3';
   if (popm < 0xff) return '4';
   return '5';
+}
+
+bool CTagLoaderTagLib::ParseID3v1Tag(ID3v1::Tag *id3v1, EmbeddedArt *art, CMusicInfoTag& tag)
+{
+  if (!id3v1) return false;
+  tag.SetTitle(id3v1->title().to8Bit(true));
+  tag.SetArtist(id3v1->artist().to8Bit(true));
+  tag.SetAlbum(id3v1->album().to8Bit(true));
+  tag.SetComment(id3v1->comment().to8Bit(true));
+  tag.SetGenre(id3v1->genre().to8Bit(true));
+  tag.SetYear(id3v1->year());
+  tag.SetTrackNumber(id3v1->track());
+  return true;
 }
 
 bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusicInfoTag& tag)
@@ -359,6 +376,8 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
         else if (frame->description() == "replaygain_album_gain")       tag.SetReplayGainAlbumGain((int)(atof(stringList.front().toCString(true)) * 100 + 0.5));
         else if (frame->description() == "replaygain_track_peak")       tag.SetReplayGainTrackPeak((float)atof(stringList.front().toCString(true)));
         else if (frame->description() == "replaygain_album_peak")       tag.SetReplayGainAlbumPeak((float)atof(stringList.front().toCString(true)));
+        else if (frame->description() == "ALBUMARTIST")                 SetAlbumArtist(tag, StringListToVectorString(stringList));
+        else if (frame->description() == "ALBUM ARTIST")                SetAlbumArtist(tag, StringListToVectorString(stringList));
         else if (g_advancedSettings.m_logLevel == LOG_LEVEL_MAX)
           CLog::Log(LOGDEBUG, "unrecognized user text tag detected: TXXX:%s", frame->description().toCString(true));
       }
@@ -440,7 +459,7 @@ bool CTagLoaderTagLib::ParseAPETag(APE::Tag *ape, EmbeddedArt *art, CMusicInfoTa
     else if (it->first == "ALBUM ARTIST")              SetAlbumArtist(tag, StringListToVectorString(it->second.toStringList()));
     else if (it->first == "ALBUM")                     tag.SetAlbum(it->second.toString().to8Bit(true));
     else if (it->first == "TITLE")                     tag.SetTitle(it->second.toString().to8Bit(true));
-    else if (it->first == "TRACKNUMBER")               tag.SetTrackNumber(it->second.toString().toInt());
+    else if (it->first == "TRACKNUMBER" || it->first == "TRACK") tag.SetTrackNumber(it->second.toString().toInt());
     else if (it->first == "DISCNUMBER")                tag.SetPartOfSet(it->second.toString().toInt());
     else if (it->first == "YEAR")                      tag.SetYear(it->second.toString().toInt());
     else if (it->first == "GENRE")                     SetGenre(tag, StringListToVectorString(it->second.toStringList()));
