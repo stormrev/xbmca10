@@ -7214,17 +7214,12 @@ bool CVideoDatabase::GetRandomMusicVideo(CFileItem* item, int& idSong, const CSt
   {
     idSong = -1;
 
-    int iCount = GetMusicVideoCount(strWhere);
-    if (iCount <= 0)
-      return false;
-    int iRandom = rand() % iCount;
-
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
 
     // We don't use PrepareSQL here, as the WHERE clause is already formatted.
     CStdString strSQL;
-    strSQL.Format("select * from musicvideoview where %s order by idMVideo limit 1 offset %i",strWhere.c_str(),iRandom);
+    strSQL.Format("select * from musicvideoview where %s order by RANDOM() limit 1",strWhere.c_str());
     CLog::Log(LOGDEBUG, "%s query = %s", __FUNCTION__, strSQL.c_str());
     // run query
     if (!m_pDS->query(strSQL.c_str()))
@@ -8280,7 +8275,9 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
             }
           }
         }
-
+      }
+      if (singleFiles)
+      {
         xmlDoc.Clear();
         TiXmlDeclaration decl("1.0", "UTF-8", "yes");
         xmlDoc.InsertEndChild(decl);
@@ -8376,7 +8373,9 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
             }
           }
         }
-
+      }
+      if (singleFiles)
+      {
         xmlDoc.Clear();
         TiXmlDeclaration decl("1.0", "UTF-8", "yes");
         xmlDoc.InsertEndChild(decl);
@@ -8485,7 +8484,9 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
             }
           }
         }
-
+      }
+      if (singleFiles)
+      {
         xmlDoc.Clear();
         TiXmlDeclaration decl("1.0", "UTF-8", "yes");
         xmlDoc.InsertEndChild(decl);
@@ -8586,7 +8587,9 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
               }
             }
           }
-
+        }
+        if (singleFiles)
+        {
           xmlDoc.Clear();
           TiXmlDeclaration decl("1.0", "UTF-8", "yes");
           xmlDoc.InsertEndChild(decl);
