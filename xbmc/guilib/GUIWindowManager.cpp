@@ -156,6 +156,9 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
 
 bool CGUIWindowManager::SendMessage(CGUIMessage& message, int window)
 {
+  if (window == 0)
+    // send to no specified windows.
+    return SendMessage(message);
   CGUIWindow* pWindow = GetWindow(window);
   if(pWindow)
     return pWindow->OnMessage(message);
@@ -593,7 +596,25 @@ bool CGUIWindowManager::Render()
 
   m_tracker.CleanMarkedRegions();
 
+  // execute post rendering actions (finalize window closing)
+  AfterRender();
+
   return hasRendered;
+}
+
+void CGUIWindowManager::AfterRender()
+{
+  CGUIWindow* pWindow = GetWindow(GetActiveWindow());
+  if (pWindow)
+    pWindow->AfterRender();
+
+  // make copy of vector as we may remove items from it as we go
+  vector<CGUIWindow *> activeDialogs = m_activeDialogs;
+  for (iDialog it = activeDialogs.begin(); it != activeDialogs.end(); ++it)
+  {
+    if ((*it)->IsDialogRunning())
+      (*it)->AfterRender();
+  }
 }
 
 void CGUIWindowManager::FrameMove()

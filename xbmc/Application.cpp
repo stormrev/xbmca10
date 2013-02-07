@@ -18,6 +18,7 @@
  *
  */
 
+#include "network/Network.h"
 #include "threads/SystemClock.h"
 #include "system.h"
 #include "Application.h"
@@ -139,7 +140,6 @@
 #include "music/karaoke/GUIDialogKaraokeSongSelector.h"
 #include "music/karaoke/GUIWindowKaraokeLyrics.h"
 #endif
-#include "network/Network.h"
 #include "network/Zeroconf.h"
 #include "network/ZeroconfBrowser.h"
 #ifndef _LINUX
@@ -335,6 +335,10 @@
 #include "input/SDLJoystick.h"
 #endif
 
+#if defined(TARGET_ANDROID)
+#include "android/activity/XBMCApp.h"
+#endif
+
 using namespace std;
 using namespace ADDON;
 using namespace XFILE;
@@ -386,6 +390,7 @@ CApplication::CApplication(void)
   , m_musicInfoScanner(new CMusicInfoScanner)
   , m_seekHandler(new CSeekHandler)
 {
+  m_network = NULL;
   TiXmlBase::SetCondenseWhiteSpace(false);
   m_iPlaySpeed = 1;
   m_bInhibitIdleShutdown = false;
@@ -466,6 +471,7 @@ CApplication::~CApplication(void)
   delete m_dpms;
   delete m_seekHandler;
   delete m_pInertialScrollingHandler;
+
 }
 
 bool CApplication::OnEvent(XBMC_Event& newEvent)
@@ -565,6 +571,14 @@ void CApplication::Preflight()
 
 bool CApplication::Create()
 {
+#if defined(HAS_LINUX_NETWORK)
+  m_network = new CNetworkLinux();
+#elif defined(HAS_WIN32_NETWORK)
+  m_network = new CNetworkWin32();
+#else
+  m_network = new CNetwork();
+#endif
+
   Preflight();
   g_settings.Initialize(); //Initialize default AdvancedSettings
 
@@ -622,22 +636,22 @@ bool CApplication::Create()
   CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: Linux (%s, %s). Built on %s", g_infoManager.GetVersion().c_str(), g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__);
 #elif defined(_WIN32)
   CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: %s. Built on %s (compiler %i)", g_infoManager.GetVersion().c_str(), g_sysinfo.GetKernelVersion().c_str(), __DATE__, _MSC_VER);
+  CLog::Log(LOGNOTICE, g_cpuInfo.getCPUModel().c_str());
+  CLog::Log(LOGNOTICE, CWIN32Util::GetResInfoString());
+  CLog::Log(LOGNOTICE, "Running with %s rights", (CWIN32Util::IsCurrentUserLocalAdministrator() == TRUE) ? "administrator" : "restricted");
+  CLog::Log(LOGNOTICE, "Aero is %s", (g_sysinfo.IsAeroDisabled() == true) ? "disabled" : "enabled");
+#endif
 #if defined(__arm__)
   if (g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_NEON)
     CLog::Log(LOGNOTICE, "ARM Features: Neon enabled");
   else
     CLog::Log(LOGNOTICE, "ARM Features: Neon disabled");
 #endif
-  CLog::Log(LOGNOTICE, g_cpuInfo.getCPUModel().c_str());
-  CLog::Log(LOGNOTICE, CWIN32Util::GetResInfoString());
-  CLog::Log(LOGNOTICE, "Running with %s rights", (CWIN32Util::IsCurrentUserLocalAdministrator() == TRUE) ? "administrator" : "restricted");
-  CLog::Log(LOGNOTICE, "Aero is %s", (g_sysinfo.IsAeroDisabled() == true) ? "disabled" : "enabled");
-#endif
   CSpecialProtocol::LogPaths();
 
   CStdString executable = CUtil::ResolveExecutablePath();
   CLog::Log(LOGNOTICE, "The executable running is: %s", executable.c_str());
-  CLog::Log(LOGNOTICE, "Local hostname: %s", m_network.GetHostName().c_str());
+  CLog::Log(LOGNOTICE, "Local hostname: %s", m_network->GetHostName().c_str());
   CLog::Log(LOGNOTICE, "Log File is located: %sxbmc.log", g_settings.m_logFolder.c_str());
   CLog::Log(LOGNOTICE, "-----------------------------------------------------------------------");
 
@@ -1353,8 +1367,16 @@ bool CApplication::Initialize()
       CJSONRPC::Initialize();
 #endif
       ADDON::CAddonMgr::Get().StartServices(false);
-      StartPVRManager();
-      g_windowManager.ActivateWindow(g_SkinInfo->GetFirstWindow());
+      if (g_SkinInfo->GetFirstWindow() == WINDOW_PVR)
+      {
+        g_windowManager.ActivateWindow(WINDOW_HOME);
+        StartPVRManager(true);
+      }
+      else
+      {
+        StartPVRManager(false);
+        g_windowManager.ActivateWindow(g_SkinInfo->GetFirstWindow());
+      }
     }
 
   }
@@ -1396,7 +1418,7 @@ bool CApplication::Initialize()
 
 #ifdef HAS_SDL_JOYSTICK
   g_Joystick.SetEnabled(g_guiSettings.GetBool("input.enablejoystick") &&
-                    (CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 || !g_guiSettings.GetBool("input.disablejoystickwithimon")) );
+                    CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 );
 #endif
 
   return true;
@@ -1424,7 +1446,7 @@ bool CApplication::StartServer(enum ESERVERS eServer, bool bStart, bool bWait/* 
       }
       break;
     case ES_AIRPLAYSERVER:
-      oldSetting = g_guiSettings.GetBool("services.esenabled");
+      oldSetting = g_guiSettings.GetBool("services.airplay");
       g_guiSettings.SetBool("services.airplay", bStart);
 
       if (bStart)
@@ -1434,7 +1456,7 @@ bool CApplication::StartServer(enum ESERVERS eServer, bool bStart, bool bWait/* 
 
       if (!ret)
       {
-        g_guiSettings.SetBool("services.esenabled", oldSetting);
+        g_guiSettings.SetBool("services.airplay", oldSetting);
       }
       break;
     case ES_JSONRPCSERVER:
@@ -1499,7 +1521,7 @@ bool CApplication::StartServer(enum ESERVERS eServer, bool bStart, bool bWait/* 
 bool CApplication::StartWebServer()
 {
 #ifdef HAS_WEB_SERVER
-  if (g_guiSettings.GetBool("services.webserver") && m_network.IsAvailable())
+  if (g_guiSettings.GetBool("services.webserver") && m_network->IsAvailable())
   {
     int webPort = atoi(g_guiSettings.GetString("services.webserverport"));
     CLog::Log(LOGNOTICE, "Webserver: Starting...");
@@ -1555,7 +1577,7 @@ bool CApplication::StartAirplayServer()
 {
   bool ret = false;
 #ifdef HAS_AIRPLAY
-  if (g_guiSettings.GetBool("services.airplay") && m_network.IsAvailable())
+  if (g_guiSettings.GetBool("services.airplay") && m_network->IsAvailable())
   {
     int listenPort = g_advancedSettings.m_airPlayPort;
     CStdString password = g_guiSettings.GetString("services.airplaypassword");
@@ -1585,7 +1607,7 @@ bool CApplication::StartAirplayServer()
 #endif
   {
 #ifdef HAS_AIRTUNES
-    if (g_guiSettings.GetBool("services.airplay") && m_network.IsAvailable())
+    if (g_guiSettings.GetBool("services.airplay") && m_network->IsAvailable())
     {
       int listenPort = g_advancedSettings.m_airTunesPort;
       CStdString password = g_guiSettings.GetString("services.airplaypassword");
@@ -1643,6 +1665,7 @@ void CApplication::StopJSONRPCServer(bool bWait)
 void CApplication::StartUPnP()
 {
 #ifdef HAS_UPNP
+  StartUPnPClient();
   StartUPnPServer();
   StartUPnPRenderer();
 #endif
@@ -1726,6 +1749,28 @@ void CApplication::RefreshEventServer()
 #endif
 }
 
+void CApplication::StartUPnPClient()
+{
+#ifdef HAS_UPNP
+  if (g_guiSettings.GetBool("services.upnpcontroller"))
+  {
+    CLog::Log(LOGNOTICE, "starting upnp client");
+    UPNP::CUPnP::GetInstance()->StartClient();
+  }
+#endif
+}
+
+void CApplication::StopUPnPClient()
+{
+#ifdef HAS_UPNP
+  if (UPNP::CUPnP::IsInstantiated())
+  {
+    CLog::Log(LOGNOTICE, "stopping upnp client");
+    UPNP::CUPnP::GetInstance()->StopClient();
+  }
+#endif
+}
+
 void CApplication::StartUPnPRenderer()
 {
 #ifdef HAS_UPNP
@@ -1793,10 +1838,10 @@ void CApplication::StopZeroconf()
 #endif
 }
 
-void CApplication::StartPVRManager()
+void CApplication::StartPVRManager(bool bOpenPVRWindow /* = false */)
 {
   if (g_guiSettings.GetBool("pvrmanager.enabled"))
-    g_PVRManager.Start(true);
+    g_PVRManager.Start(true, bOpenPVRWindow);
 }
 
 void CApplication::StopPVRManager()
@@ -1848,7 +1893,7 @@ void CApplication::StartServices()
 
 void CApplication::StopServices()
 {
-  m_network.NetworkMessage(CNetwork::SERVICES_DOWN, 0);
+  m_network->NetworkMessage(CNetwork::SERVICES_DOWN, 0);
 
 #if !defined(_WIN32) && defined(HAS_DVD_DRIVE)
   CLog::Log(LOGNOTICE, "stop dvd detect media");
@@ -2067,6 +2112,10 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
   g_charsetConverter.reset();
 
   g_infoManager.Clear();
+
+//  The g_SkinInfo boost shared_ptr ought to be reset here
+// but there are too many places it's used without checking for NULL
+// and as a result a race condition on exit can cause a crash.
 }
 
 bool CApplication::LoadUserWindows()
@@ -2811,6 +2860,36 @@ bool CApplication::OnAction(const CAction &action)
     }
   }
 
+
+  if (action.GetID() == ACTION_SWITCH_PLAYER)
+  {
+    if(IsPlaying())
+    {
+      VECPLAYERCORES cores;
+      CFileItem item(*m_itemCurrentFile.get());
+      CPlayerCoreFactory::GetPlayers(item, cores);
+      PLAYERCOREID core = CPlayerCoreFactory::SelectPlayerDialog(cores);
+      if(core != EPC_NONE)
+      {
+        g_application.m_eForcedNextPlayer = core;
+        item.m_lStartOffset = GetTime() * 75;
+        PlayFile(item, true);
+      }
+    }
+    else
+    {
+      VECPLAYERCORES cores;
+      CPlayerCoreFactory::GetRemotePlayers(cores);
+      PLAYERCOREID core = CPlayerCoreFactory::SelectPlayerDialog(cores);
+      if(core != EPC_NONE)
+      {
+        CFileItem item;
+        g_application.m_eForcedNextPlayer = core;
+        PlayFile(item, false);
+      }
+    }
+  }
+
   if (g_peripherals.OnAction(action))
     return true;
 
@@ -2846,15 +2925,19 @@ bool CApplication::OnAction(const CAction &action)
       if (g_settings.m_bMute)
         UnMute();
       float volume = g_settings.m_fVolumeLevel;
+// Android has steps based on the max available volume level
+#if defined(TARGET_ANDROID)
+      float step = (VOLUME_MAXIMUM - VOLUME_MINIMUM) / CXBMCApp::GetMaxSystemVolume();
+#else
       float step   = (VOLUME_MAXIMUM - VOLUME_MINIMUM) / VOLUME_CONTROL_STEPS;
+
       if (action.GetRepeat())
         step *= action.GetRepeat() * 50; // 50 fps
-
+#endif
       if (action.GetID() == ACTION_VOLUME_UP)
         volume += (float)fabs(action.GetAmount()) * action.GetAmount() * step;
       else
         volume -= (float)fabs(action.GetAmount()) * action.GetAmount() * step;
-
       SetVolume(volume, false);
     }
     // show visual feedback of volume change...
@@ -3457,7 +3540,11 @@ bool CApplication::Cleanup()
 
 #ifdef _LINUX
     CXHandle::DumpObjectTracker();
+
+#ifdef HAS_DVD_DRIVE
+    CLibcdio::ReleaseInstance();
 #endif
+#endif 
 #if defined(TARGET_ANDROID)
     // enable for all platforms once it's safe
     g_sectionLoader.UnloadAll();
@@ -3466,6 +3553,10 @@ bool CApplication::Cleanup()
     _CrtDumpMemoryLeaks();
     while(1); // execution ends
 #endif
+
+    delete m_network;
+    m_network = NULL;
+
     return true;
   }
   catch (...)
@@ -3528,6 +3619,7 @@ void CApplication::Stop(int exitCode)
   CWebServer::UnregisterRequestHandler(&m_httpVfsHandler);
 #ifdef HAS_JSONRPC
   CWebServer::UnregisterRequestHandler(&m_httpJsonRpcHandler);
+  CJSONRPC::Cleanup();
 #endif
 #ifdef HAS_WEB_INTERFACE
   CWebServer::UnregisterRequestHandler(&m_httpWebinterfaceAddonsHandler);
@@ -3606,6 +3698,7 @@ void CApplication::Stop(int exitCode)
 
     // shutdown the AudioEngine
     CAEFactory::Shutdown();
+    CAEFactory::UnLoadEngine();
 
     CLog::Log(LOGNOTICE, "stopped");
   }
@@ -3848,7 +3941,9 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
     g_settings.m_currentVideoSettings = g_settings.m_defaultVideoSettings;
     // see if we have saved options in the database
 
-    m_iPlaySpeed = 1;
+    SetPlaySpeed(1);
+    m_iPlaySpeed = 1;     // Reset both CApp's & Player's speed else we'll get confused
+
     *m_itemCurrentFile = item;
     m_nextPlaylistItem = -1;
     m_currentStackPosition = 0;
@@ -4035,8 +4130,6 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
 
   // reset m_bStartVideoWindowed as it's a temp setting
   g_settings.m_bStartVideoWindowed = false;
-  // reset any forced player
-  m_eForcedNextPlayer = EPC_NONE;
 
 #ifdef HAS_KARAOKE
   //We have to stop parsing a cdg before mplayer is deallocated
@@ -4092,6 +4185,13 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
       SetPlaySpeed(iSpeed);
     }
 
+    // if player has volume control, set it.
+    if (m_pPlayer && m_pPlayer->ControlsVolume())
+    {
+       m_pPlayer->SetVolume(g_settings.m_fVolumeLevel);
+       m_pPlayer->SetMute(g_settings.m_bMute);
+    }
+
     if( IsPlayingAudio() )
     {
       if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
@@ -4099,7 +4199,7 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
     }
 
 #ifdef HAS_VIDEO_PLAYBACK
-    if( IsPlayingVideo() )
+    else if( IsPlayingVideo() )
     {
       if (g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION)
         g_windowManager.ActivateWindow(WINDOW_FULLSCREEN_VIDEO);
@@ -4128,6 +4228,13 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
       }
     }
 #endif
+    else
+    {
+      if (g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION
+      ||  g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
+        g_windowManager.PreviousWindow();
+
+    }
 
 #if !defined(TARGET_DARWIN) && !defined(_LINUX)
     g_audioManager.Enable(false);
@@ -4398,7 +4505,7 @@ void CApplication::UpdateFileState()
   }
   else
   {
-    if (IsPlayingVideo() || IsPlayingAudio())
+    if (IsPlaying())
     {
       if (m_progressTrackingItem->GetPath() == "")
       {
@@ -4467,8 +4574,9 @@ void CApplication::StopPlaying()
       m_pPlayer->CloseFile();
 
     // turn off visualisation window when stopping
-    if (iWin == WINDOW_VISUALISATION
+    if ((iWin == WINDOW_VISUALISATION
     ||  iWin == WINDOW_FULLSCREEN_VIDEO)
+    && !m_bStop)
       g_windowManager.PreviousWindow();
 
     g_partyModeManager.Disable();
@@ -4786,11 +4894,18 @@ bool CApplication::OnMessage(CGUIMessage& message)
 #endif
       // reset the seek handler
       m_seekHandler->Reset();
+      CPlayList playList = g_playlistPlayer.GetPlaylist(g_playlistPlayer.GetCurrentPlaylist());
 
       // Update our infoManager with the new details etc.
       if (m_nextPlaylistItem >= 0)
-      { // we've started a previously queued item
-        CFileItemPtr item = g_playlistPlayer.GetPlaylist(g_playlistPlayer.GetCurrentPlaylist())[m_nextPlaylistItem];
+      { 
+        // playing an item which is not in the list - player might be stopped already
+        // so do nothing
+        if (playList.size() <= m_nextPlaylistItem)
+          return true;
+
+        // we've started a previously queued item
+        CFileItemPtr item = playList[m_nextPlaylistItem];
         // update the playlist manager
         int currentSong = g_playlistPlayer.GetCurrentSong();
         int param = ((currentSong & 0xffff) << 16) | (m_nextPlaylistItem & 0xffff);
@@ -4923,6 +5038,9 @@ bool CApplication::OnMessage(CGUIMessage& message)
         // stop lastfm
         if (CLastFmManager::GetInstance()->IsRadioEnabled())
           CLastFmManager::GetInstance()->StopRadio();
+
+        // reset any forced player
+        m_eForcedNextPlayer = EPC_NONE;
 
         delete m_pPlayer;
         m_pPlayer = 0;
@@ -5350,10 +5468,6 @@ void CApplication::SetHardwareVolume(float hardwareVolume)
     value = 1.0f;
 
   CAEFactory::SetVolume(value);
-
-  /* for platforms where we do not have AE */
-  if (m_pPlayer)
-    m_pPlayer->SetVolume(g_settings.m_fVolumeLevel);
 }
 
 int CApplication::GetVolume() const
@@ -5368,6 +5482,13 @@ void CApplication::VolumeChanged() const
   data["volume"] = GetVolume();
   data["muted"] = g_settings.m_bMute;
   CAnnouncementManager::Announce(Application, "xbmc", "OnVolumeChanged", data);
+
+  // if player has volume control, set it.
+  if (m_pPlayer && m_pPlayer->ControlsVolume())
+  {
+     m_pPlayer->SetVolume(g_settings.m_fVolumeLevel);
+     m_pPlayer->SetMute(g_settings.m_bMute);
+  }
 }
 
 int CApplication::GetSubtitleDelay() const
@@ -5404,13 +5525,19 @@ void CApplication::SetPlaySpeed(int iSpeed)
   m_iPlaySpeed = iSpeed;
 
   m_pPlayer->ToFFRW(m_iPlaySpeed);
-  if (m_iPlaySpeed == 1)
-  { // restore volume
-    m_pPlayer->SetVolume(VOLUME_MAXIMUM);
-  }
-  else
-  { // mute volume
-    m_pPlayer->SetVolume(VOLUME_MINIMUM);
+
+  // if player has volume control, set it.
+  if (m_pPlayer->ControlsVolume())
+  {
+    if (m_iPlaySpeed == 1)
+    { // restore volume
+      m_pPlayer->SetVolume(VOLUME_MAXIMUM);
+    }
+    else
+    { // mute volume
+      m_pPlayer->SetVolume(VOLUME_MINIMUM);
+    }
+    m_pPlayer->SetMute(g_settings.m_bMute);
   }
 }
 
@@ -5837,23 +5964,10 @@ void CApplication::SetRenderGUI(bool renderGUI)
   m_renderGUI = renderGUI;
 }
 
-#if defined(HAS_LINUX_NETWORK)
-CNetworkLinux& CApplication::getNetwork()
-{
-  return m_network;
-}
-#elif defined(HAS_WIN32_NETWORK)
-CNetworkWin32& CApplication::getNetwork()
-{
-  return m_network;
-}
-#else
 CNetwork& CApplication::getNetwork()
 {
-  return m_network;
+  return *m_network;
 }
-
-#endif
 #ifdef HAS_PERFORMANCE_SAMPLE
 CPerformanceStats &CApplication::GetPerformanceStats()
 {

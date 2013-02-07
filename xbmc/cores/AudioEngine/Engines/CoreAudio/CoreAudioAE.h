@@ -120,10 +120,13 @@ public:
   virtual OSStatus  Render(AudioUnitRenderActionFlags* actionFlags,
     const AudioTimeStamp* pTimeStamp, UInt32 busNumber,
     UInt32 frameCount, AudioBufferList* pBufList);
+    
+  void AudioDevicesChanged();
 
 
 private:
   CCriticalSection  m_callbackLock;
+  CCriticalSection  m_engineLock;
   CCriticalSection  m_streamLock;
   CCriticalSection  m_soundLock;
   CCriticalSection  m_soundSampleLock;
@@ -171,4 +174,6 @@ private:
   int               m_soundMode;
   bool              m_streamsPlaying;
   bool              m_isSuspended;
+  bool              m_softSuspend;
+  unsigned int      m_softSuspendTimer;
 };

@@ -37,6 +37,8 @@
 #include "guilib/LocalizeStrings.h"
 #include "TextureCache.h"
 #include "music/Album.h"
+#include "storage/MediaManager.h"
+#include "GUIDialogMusicInfo.h"
 
 using namespace XFILE;
 
@@ -103,7 +105,7 @@ bool CGUIDialogSongInfo::OnMessage(CGUIMessage& message)
       }
       else if (iControl == CONTROL_ALBUMINFO)
       {
-        CGUIWindowMusicBase *window = (CGUIWindowMusicBase *)g_windowManager.GetWindow(g_windowManager.GetActiveWindow());
+        CGUIWindowMusicBase *window = (CGUIWindowMusicBase *)g_windowManager.GetWindow(WINDOW_MUSIC_NAV);
         if (window)
         {
           CFileItem item(*m_song);
@@ -286,7 +288,10 @@ void CGUIDialogSongInfo::OnGetThumb()
   }
 
   CStdString result;
-  if (!CGUIDialogFileBrowser::ShowAndGetImage(items, g_settings.m_musicSources, g_localizeStrings.Get(1030), result))
+  VECSOURCES sources(g_settings.m_musicSources);
+  CGUIDialogMusicInfo::AddItemPathToFileBrowserSources(sources, *m_song);
+  g_mediaManager.GetLocalDrives(sources);
+  if (!CGUIDialogFileBrowser::ShowAndGetImage(items, sources, g_localizeStrings.Get(1030), result))
     return;   // user cancelled
 
   if (result == "thumb://Current")

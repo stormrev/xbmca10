@@ -425,6 +425,17 @@ int CDVDPlayerAudio::DecodeFrame(DVDAudioFrame &audioframe, bool bDropPacket)
       if(m_started)
         m_messageParent.Put(new CDVDMsgInt(CDVDMsg::PLAYER_STARTED, DVDPLAYER_AUDIO));
     }
+    else if (pMsg->IsType(CDVDMsg::PLAYER_DISPLAYTIME))
+    {
+      CDVDPlayer::SPlayerState& state = ((CDVDMsgType<CDVDPlayer::SPlayerState>*)pMsg)->m_value;
+
+      if(state.time_src == CDVDPlayer::ETIMESOURCE_CLOCK)
+        state.time      = DVD_TIME_TO_MSEC(m_pClock->GetClock(state.timestamp) + state.time_offset);
+      else
+        state.timestamp = CDVDClock::GetAbsoluteClock();
+      state.player    = DVDPLAYER_AUDIO;
+      m_messageParent.Put(pMsg->Acquire());
+    }
     else if (pMsg->IsType(CDVDMsg::GENERAL_EOF))
     {
       CLog::Log(LOGDEBUG, "CDVDPlayerAudio - CDVDMsg::GENERAL_EOF");
@@ -649,7 +660,7 @@ void CDVDPlayerAudio::HandleSyncError(double duration)
   {
     m_pClock->Discontinuity(clock+error);
     if(m_speed == DVD_PLAYSPEED_NORMAL)
-      CLog::Log(LOGDEBUG, "CDVDPlayerAudio:: Discontinuity - was:%f, should be:%f, error:%f", clock, clock+error, error);
+      CLog::Log(LOGDEBUG, "CDVDPlayerAudio:: Discontinuity1 - was:%f, should be:%f, error:%f", clock, clock+error, error);
 
     m_errorbuff = 0;
     m_errorcount = 0;
@@ -710,7 +721,7 @@ void CDVDPlayerAudio::HandleSyncError(double duration)
       {
         m_pClock->Discontinuity(clock+error);
         if(m_speed == DVD_PLAYSPEED_NORMAL)
-          CLog::Log(LOGDEBUG, "CDVDPlayerAudio:: Discontinuity - was:%f, should be:%f, error:%f", clock, clock+error, error);
+          CLog::Log(LOGDEBUG, "CDVDPlayerAudio:: Discontinuity2 - was:%f, should be:%f, error:%f", clock, clock+error, error);
       }
     }
     else if (m_synctype == SYNC_SKIPDUP && m_skipdupcount == 0 && fabs(m_error) > DVD_MSEC_TO_TIME(10))
