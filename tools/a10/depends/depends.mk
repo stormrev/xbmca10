@@ -38,9 +38,10 @@ ifeq ($(shell uname -m),armv7l)
 SDKSTAGE=/
 #where is your xbmc install root 
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
+#XBMCPREFIX=/opt/xbmc
 #where is your toolchain
 TOOLCHAIN=/usr
-JOBS=1
+JOBS=3
 export HOST=arm-linux-gnueabi$(HF)
 export BUILD=arm-linux-gnueabi$(HF)
 export CROSS_COMPILE=
@@ -55,6 +56,7 @@ else
 SDKSTAGE=/media/iso
 #where is your xbmc install root 
 XBMCPREFIX=/allwinner/xbmc-pvr-bin$(HF)
+#XBMCPREFIX=/opt/xbmc
 #where is your toolchain
 TOOLCHAIN=/usr/arm-linux-gnueabi$(HF)
 JOBS=4

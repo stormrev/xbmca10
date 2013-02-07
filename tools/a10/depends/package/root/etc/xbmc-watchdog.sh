@@ -26,6 +26,7 @@ modprobe mali_drm
 chmod 666 /dev/mali /dev/ump /dev/cedar_dev /dev/disp
 chmod -R 666 /dev/input/*
 chmod -R 666 /dev/snd/*
+chmod 777 /dev/tty*
 
 stop lightdm
 

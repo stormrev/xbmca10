@@ -13,8 +13,7 @@ CONFIGURE=./configure \
 	--disable-vaapi \
 	--disable-openmax \
 	--enable-neon \
-	--enable-gles \
-	--disable-mysql \
+	--enable-gles 
 
 SRC=../../../../
 
